@@ -240,6 +240,7 @@ class ExperimentSummary(BaseModel):
     experiment_id: str = Field(min_length=1)
     scenario_id: str = Field(min_length=1)
     created_at: datetime
+    seed: int | None = None
     methods: list[str]
     scenario_input_hash: str = Field(min_length=1)
 

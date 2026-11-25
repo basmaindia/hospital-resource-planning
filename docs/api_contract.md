@@ -12,6 +12,7 @@ L'API FastAPI est versionnée sous `/api/v1`. Les lectures de configuration, job
 | `GET /api/v1/experiments/{experiment_id}` | métadonnées et KPI | lecture d'artefacts stockés |
 | `GET /api/v1/experiments/{experiment_id}/downloads/{artifact_path}` | fichier | téléchargement contrôlé d'un artefact existant |
 | `GET /api/v1/dashboard/scenarios` | scénarios configurés | lecture de `configs/scenarios.json` |
+| `GET /api/v1/dashboard/scenario-comparison` | KPI d'une expérience par scénario (graine de référence, ou `?seed=` explicite) | lecture d'artefacts stockés |
 | `GET /api/v1/dashboard/sensitivity/manifest` | grille déclarative de sensibilité | lecture de `results/experiments/sensitivity_manifest.csv` |
 | `GET /api/v1/dashboard/forecasts` | prévisions finales et métriques | lecture de `results/forecasts/` |
 | `GET /api/v1/dashboard/exploration` | admissions, occupation, capacité | lecture de `data/synthetic/` |

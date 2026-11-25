@@ -129,11 +129,22 @@ def get_job(job_id: str) -> JobResponse:
 
 @app.get("/api/v1/experiments", response_model=list[ExperimentSummary])
 def list_experiments() -> list[ExperimentSummary]:
-    """Liste les expériences déjà stockées; cette lecture est strictement passive."""
+    """Liste les expériences déjà stockées; cette lecture est strictement passive.
+
+    Dans un scénario, la graine de référence vient en premier : le dashboard
+    sélectionne ainsi par défaut la même expérience que la comparaison.
+    """
     root = experiments_root()
     if not root.exists():
         return []
-    return [summary for path in sorted(root.glob("*/experiment.json")) if (summary := _read_experiment_summary(path))]
+    reference = _reference_seed()
+    summaries = [
+        summary for path in sorted(root.glob("*/experiment.json")) if (summary := _read_experiment_summary(path))
+    ]
+    return sorted(
+        summaries,
+        key=lambda item: (item.scenario_id, item.seed != reference, -item.created_at.timestamp(), item.experiment_id),
+    )
 
 
 @app.get("/api/v1/experiments/{experiment_id}")
@@ -150,28 +161,37 @@ def get_experiment(experiment_id: str) -> dict[str, object]:
 
 
 @app.get("/api/v1/dashboard/scenario-comparison")
-def get_scenario_comparison() -> list[dict[str, object]]:
-    """Agrège les KPI persistés de l'expérience la plus récente de chaque scénario.
+def get_scenario_comparison(seed: int | None = None) -> list[dict[str, object]]:
+    """Agrège les KPI persistés d'une seule expérience par scénario.
 
-    Chaque ligne reste attachée à son expérience (instance, scénario et méthode),
-    ce qui permet de comparer les scénarios entre eux sans mélanger les instances.
+    Avec `seed`, seules les expériences de cette graine sont retenues. Sans `seed`,
+    la graine de référence (`random_seed` de la configuration) est prioritaire : un
+    essai lancé avec une autre graine ne remplace donc jamais la comparaison. À
+    défaut d'expérience de référence, la plus récente est utilisée. À graine égale,
+    l'expérience la plus récente est retenue. Chaque ligne porte sa graine.
     """
     root = experiments_root()
     if not root.exists():
         return []
-    latest: dict[str, tuple[str, Path]] = {}
+    wanted_seed = _reference_seed() if seed is None else seed
+    selected: dict[str, tuple[bool, float, int | None, Path]] = {}
     for metadata_path in sorted(root.glob("*/experiment.json")):
         summary = _read_experiment_summary(metadata_path)
         metrics_path = metadata_path.parent / "metrics.csv"
         if summary is None or not metrics_path.is_file():
             continue
-        created_at = summary.created_at.isoformat()
-        current = latest.get(summary.scenario_id)
-        if current is None or created_at > current[0]:
-            latest[summary.scenario_id] = (created_at, metrics_path)
+        matches = summary.seed == wanted_seed
+        if seed is not None and not matches:
+            continue
+        candidate = (matches, summary.created_at.timestamp(), summary.seed, metrics_path)
+        current = selected.get(summary.scenario_id)
+        if current is None or candidate[:2] > current[:2]:
+            selected[summary.scenario_id] = candidate
     rows: list[dict[str, object]] = []
-    for scenario_id in sorted(latest):
-        frame = pd.read_csv(latest[scenario_id][1])
+    for scenario_id in sorted(selected):
+        _, _, scenario_seed, metrics_path = selected[scenario_id]
+        frame = pd.read_csv(metrics_path)
+        frame["seed"] = scenario_seed
         rows.extend(frame.astype(object).where(pd.notna(frame), None).to_dict(orient="records"))
     return rows
 
@@ -337,6 +357,14 @@ def get_dashboard_allocation(experiment_id: str, method_name: str) -> Allocation
     )
 
 
+def _reference_seed() -> int | None:
+    """Graine de la configuration, ou None si celle-ci est illisible."""
+    try:
+        return load_hospital_config(hospital_config_path()).random_seed
+    except (OSError, ValueError):
+        return None
+
+
 def _experiment_directory(experiment_id: str) -> Path:
     root = experiments_root().resolve()
     directory = (root / experiment_id).resolve()
@@ -406,6 +434,7 @@ def _read_experiment_summary(metadata_path: Path) -> ExperimentSummary | None:
             experiment_id=metadata["experiment_id"],
             scenario_id=scenario["scenario_id"],
             created_at=metadata["created_at"],
+            seed=metadata.get("seed"),
             methods=metadata["methods"],
             scenario_input_hash=metadata["scenario_input_hash"],
         )
