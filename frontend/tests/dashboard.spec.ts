@@ -1,7 +1,7 @@
 
 import { expect, test } from "@playwright/test";
 
-test("affiche les huit vues et les filtres sans lancer de calcul", async ({ page }) => {
+test("affiche les dix vues et les filtres sans lancer de calcul", async ({ page }) => {
   const writeRequests: string[] = [];
 
   page.on("request", (request) => {
@@ -21,13 +21,15 @@ test("affiche les huit vues et les filtres sans lancer de calcul", async ({ page
     page.getByText("Données synthétiques uniquement")
   ).toBeVisible();
 
-  // Vérification des huit vues du dashboard
+  // Vérification des autres vues du dashboard
   const views = [
+    ["Comparaison scénarios", "Comparaison des scénarios"],
     ["Exploration des données", "Exploration des données"],
     ["Prévisions", "Prévisions"],
     ["Allocation", "Allocation des ressources"],
     ["Méthodes", "Comparaison des méthodes"],
     ["Scénarios", "Scénarios"],
+    ["Simulateur", "Simulateur"],
     ["Sensibilité", "Analyse de sensibilité"],
     ["Expériences & export", "Expériences et export"],
   ] as const;
@@ -50,7 +52,7 @@ test("affiche les huit vues et les filtres sans lancer de calcul", async ({ page
     })
   ).toBeVisible();
 
-  const serviceFilter = page.getByLabel("Service");
+  const serviceFilter = page.locator(".topbar select").first();
   const serviceOptions = await serviceFilter.locator("option").evaluateAll(
     (options) => options.map((option) => {
       const element = option as HTMLOptionElement;

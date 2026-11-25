@@ -192,7 +192,7 @@ Graine 42, 50 s et 8 threads par solveur exact, environ 106 s par scénario et p
 - Une méthode peut ne pas avoir produit d’artefact exploitable pour une expérience ; le dashboard affiche alors un état explicite, jamais un KPI inventé.
 - Les solveurs exacts et la grille exhaustive de sensibilité sont coûteux et ne sont jamais lancés automatiquement.
 - Les jobs sont suivis en mémoire par l’API ; leur état n’est pas conservé après un redémarrage, contrairement aux artefacts écrits.
-- Playwright n'a été vérifié qu'avec Edge, et son test ne contrôle pas les données affichées.
+- Playwright n'a été vérifié qu'avec Edge (4 tests, dont le parcours du simulateur).
 
 ## Avant publication ou phase suivante
 

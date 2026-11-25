@@ -104,7 +104,7 @@ npm.cmd run lint
 npm.cmd run build
 ```
 
-Le test navigateur `frontend/tests/dashboard.spec.ts` couvre l’ouverture de huit des dix vues (toutes sauf Comparaison scénarios et Simulateur), le filtre Service et l’absence de calcul automatique pendant la navigation. Il ne contrôle pas les données affichées. Installer Chromium une seule fois, puis l’exécuter sur un poste local autorisant `localhost` :
+Le test navigateur `frontend/tests/dashboard.spec.ts` couvre l’ouverture des dix vues, le filtre Service et l’absence de calcul automatique pendant la navigation. `frontend/tests/simulator.spec.ts` lance de vraies simulations Naïve + Greedy, contrôle les écarts à S0 et le cas irréalisable, et vérifie la Comparaison (quatre méthodes, changement de profil). Les tests démarrent leur propre API sur le port 8012, qui écrit dans une copie temporaire des résultats : le projet n’est jamais modifié. Sous Windows, Edge est utilisé ; ailleurs, installer Chromium une fois :
 
 ```powershell
 Set-Location frontend
@@ -112,4 +112,4 @@ npx.cmd playwright install chromium
 npm.cmd run test
 ```
 
-Les tests navigateur nécessitent un serveur Next.js local et un navigateur installé pour Playwright.
+Les tests navigateur réutilisent le serveur Next.js du port 3011 s’il tourne, sinon ils le démarrent.
