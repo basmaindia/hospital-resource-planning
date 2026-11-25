@@ -1,27 +1,32 @@
-\chapter*{Conclusion Générale et Perspectives}
-\addcontentsline{toc}{chapter}{Conclusion Générale et Perspectives}
-\markboth{CONCLUSION GÉNÉRALE ET PERSPECTIVES}{CONCLUSION GÉNÉRALE ET PERSPECTIVES}
+\chapter*{Conclusion générale et perspectives}
+\addcontentsline{toc}{chapter}{Conclusion générale et perspectives}
 
-\section*{Synthèse des Réalisations du Projet}
-Ce projet, mené au sein de la filière INDIA de l'ENSAM Rabat dans le module \textbf{Santé Digitale}, a conçu, implémenté et évalué un \textbf{prototype d'aide à la décision pour la planification conjointe des lits et du personnel hospitalier}. Ses contributions sont les suivantes :
-\begin{enumerate}
-    \item \textbf{Une chaîne de données synthétiques contrôlée} : \NbJours{} jours d'activité pour \NbLits{} lits et \NbAgents{} professionnels, sans aucune donnée personnelle réelle.
-    \item \textbf{Une prévision évaluée chronologiquement} : cinq modèles comparés, avec un WAPE de validation de \WapeValUrg{} aux Urgences pour la régression à retards, et un test final qui nuance ce choix dans les autres services.
-    \item \textbf{Un modèle unique des lits et du personnel} : cohortes de patients, dotation minimale, repos, qualifications, déficit de personnel et équité, avec une fonction objectif réglée par trois profils.
-    \item \textbf{Une comparaison de quatre méthodes} : naïve, Greedy, MILP/CBC et CP-SAT, sur six scénarios et trois profils. Les 72 plans respectent les contraintes dures ; CP-SAT est la meilleure méthode, ou ex æquo, dans \NbCpMeilleur{} cas sur 18.
-    \item \textbf{Une analyse des cas dégradés} : saturation, absences, crise combinée et fermeture de lits, complétées par une grille de sensibilité de \NbCas{} cas.
-    \item \textbf{Un outil utilisable} : une API de \NbEndpoints{} points d'accès et un tableau de bord de dix vues, dont la couverture RH et un simulateur, vérifiés par \NbTestsPython{} tests Python et \NbTestsNavigateur{} parcours de navigateur.
-    \item \textbf{Un cadre d'usage} : loi 09-08 et CNDP, HL7 FHIR, ISO/IEC 27001 et ISO 27799, rôles et processus de décision hebdomadaire.
-\end{enumerate}
+\begingroup
+\setlength{\parindent}{1.2em}
+\setlength{\parskip}{3pt}
 
-\section*{Enseignements}
+\indent Ce mini-projet, mené dans le cadre du module Santé digitale et ingénierie des systèmes de santé à l'ENSAM Rabat, est parti d'un problème concret : décider ensemble des lits à ouvrir et du personnel à affecter, alors que la demande est incertaine et les ressources limitées. Nous avons suivi une démarche complète : produire et contrôler des données, prévoir les admissions, formuler un modèle unique, comparer plusieurs méthodes sur les mêmes instances, contrôler chaque plan de façon indépendante, puis restituer les résultats dans un outil utilisable, replacé dans son cadre réglementaire, normatif et organisationnel.
+
+\indent La solution développée repose sur une chaîne modulaire couvrant toutes les étapes de la planification :
 \begin{itemize}
-    \item \textbf{Un meilleur objectif n'est pas toujours un meilleur accueil} : avec la priorité personnel, CP-SAT réduit le déficit RH de \DeficitCpMinPer{} à \DeficitCpMaxPer{} par rapport à Greedy, mais refuse \RefusCpPerSq{} patients au lieu de \RefusGreedySq{} en $S_4$.
-    \item \textbf{Respecter les contraintes ne suffit pas} : en situation nominale, \CouvDemSzGreedy{} de la demande est acceptée, mais \CouvSzGreedy{} seulement des postes cibles sont couverts.
-    \item \textbf{L'optimisation répartit une pénurie, elle ne la supprime pas} : \NbAgents{} agents offrent au plus \CapacitePostes{} postes par semaine, pour une cible de \CibleSz{} postes dans le plan nominal de Greedy.
-    \item \textbf{Une heuristique simple reste utile} : Greedy répond en moins de deux secondes et sert de référence et de repli.
-    \item \textbf{Un contrôle indépendant est nécessaire} : il a conduit à renforcer la vérification des cohortes de patients et à ne plus qualifier un plan de « valide » sans préciser sa couverture.
+    \item Un générateur de données synthétiques couvrant \NbJours{} jours d'activité pour \NbLits{} lits et \NbAgents{} professionnels, accompagné d'un rapport de qualité ;
+    \item Un module de prévision des admissions de $J+1$ à $J+7$, qui compare cinq modèles par validation chronologique, avec un test final réservé ;
+    \item Quatre méthodes de planification (naïve, Greedy, MILP/CBC et CP-SAT) et trois profils de pondération (équilibré, priorité accueil et priorité personnel), évalués sur six scénarios, dont des cas dégradés ;
+    \item Un validateur indépendant, qui rejoue la dynamique des patients et contrôle lits, disponibilités, qualifications, repos et dotation minimale ;
+    \item Une API FastAPI de \NbEndpoints{} points d'accès et un tableau de bord Next.js de dix vues, avec la couverture du personnel, l'analyse de sensibilité et un simulateur de scénario personnalisé.
 \end{itemize}
 
-\section*{Clôture et Perspectives}
-Le prototype n'est pas prêt pour un usage hospitalier : les données sont synthétiques, les poids ont été choisis par l'équipe, l'optimalité est rarement prouvée et la sécurité reste à construire. Les suites naturelles sont le recalibrage des effectifs et des qualifications, l'enchaînement des semaines, la prise en compte de l'incertitude, la définition des poids avec des professionnels et l'intégration au système d'information hospitalier. Dans tous les cas, l'outil propose et explique ; la décision reste aux équipes de soins.
+\indent Les essais menés confirment le fonctionnement de l'ensemble : les \NbTestsPython{} tests Python sont satisfaits et les 72 plans respectent les contraintes dures. La régression à retards obtient un WAPE de validation de \WapeValUrg{} aux Urgences, mais le test final nuance son avantage dans les autres services. CP-SAT est la meilleure méthode, ou ex æquo, dans \NbCpMeilleur{} cas sur 18 ; la meilleure méthode améliore l'objectif de Greedy de \GainMinEq{} à \GainMaxEq{} (équilibré), de \GainMinAcc{} à \GainMaxAcc{} (priorité accueil) et de \GainMinPer{} à \GainMaxPer{} (priorité personnel). Ce gain a un prix : en $S_4$, la priorité personnel ramène le déficit de \DeficitGreedySq{} à \DeficitCpPerSq{} postes, mais porte les refus de \RefusGreedySq{} à \RefusCpPerSq{}. En situation nominale, Greedy accepte \CouvDemSzGreedy{} de la demande mais ne couvre que \CouvSzGreedy{} des postes cibles ; dans l'analyse de sensibilité, cette couverture descend à \SensCouvAbs{} avec 20\,\% d'absences, et les refus passent de \SensRefusBase{} à \SensRefusDx{} lorsque la demande double. Ces résultats ont été obtenus sur des données synthétiques, avec des poids choisis par l'équipe et des solveurs limités à \TempsSolveur{} secondes : ils valident le comportement de l'outil, sans constituer une garantie de performance dans un hôpital réel.
+
+\indent D'un point de vue personnel et académique, ce travail nous a permis d'approfondir nos compétences en prévision de séries temporelles, en recherche opérationnelle et en programmation par contraintes, en développement d'API et d'interfaces web, ainsi qu'en protection des données de santé, tout en nous confrontant à la rigueur d'une validation expérimentale : vérifier les résultats par un code indépendant, distinguer un plan réalisable d'un plan bien doté et énoncer les limites des résultats.
+
+\indent Pour prolonger ces travaux et enrichir la solution, plusieurs perspectives d'évolution peuvent être envisagées :
+\begin{itemize}
+    \item \textbf{Recalibrage de l'effectif :} \NbAgents{} agents offrent au plus \CapacitePostes{} postes par semaine, pour une cible de \CibleSz{} postes dans le plan nominal de Greedy. Revoir les effectifs, les cibles et la répartition des qualifications permettrait d'étudier un hôpital moins contraint ;
+    \item \textbf{Intégration HL7 FHIR au SIH :} lire les lits, les séjours et les disponibilités par les ressources \texttt{Location}, \texttt{Encounter}, \texttt{Practitioner} et \texttt{Schedule}, et restituer le plan au système d'information hospitalier, après ajout d'une authentification ;
+    \item \textbf{Données réelles avec accord de la CNDP :} évaluer les prévisions et les plans sur des données d'établissement agrégées, après les démarches prévues par la loi 09-08, et fixer les poids des profils avec des professionnels ;
+    \item \textbf{Optimisation stochastique :} remplacer la prévision ponctuelle par plusieurs scénarios de demande et d'absence, afin de construire des plans robustes à l'incertitude ;
+    \item \textbf{Contraintes d'heures et continuité entre horizons :} ajouter les heures contractuelles et supplémentaires, et enchaîner les semaines pour contrôler le repos et les nuits aux frontières de l'horizon.
+\end{itemize}
+
+\endgroup

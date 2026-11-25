@@ -8,3 +8,5 @@ _ancienne_version/
 *.lot
 *.out
 *.synctex.gz
+# Modele de forme d un autre rapport, non versionne.
+modele_iiot.tex

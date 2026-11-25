@@ -1,41 +1,41 @@
 \chapter*{Introduction Générale}
 \addcontentsline{toc}{chapter}{Introduction Générale}
+\begingroup
+\setlength{\parindent}{1.2em}
+\setlength{\parskip}{3pt}
 
-\section*{Le Contexte de Tension Hospitalière}
-L'hôpital accueille des patients à toute heure, avec des ressources limitées. Sa planification est soumise à des contraintes qui se contredisent souvent :
+\indent Les hôpitaux doivent accueillir des patients à toute heure avec des ressources limitées. Les admissions, en particulier aux urgences, sont difficiles à prévoir, tandis que le nombre de lits et l'effectif soignant ne s'ajustent pas à court terme. Dans ce contexte de tension, la \textbf{santé digitale} associe données, modèles et outils logiciels afin d'aider les établissements à anticiper la demande et à mieux employer leurs ressources.
+
+\indent La \textbf{planification hospitalière} porte notamment sur deux décisions liées : l'ouverture des lits~\cite{hulshof2012,hallbeds} et l'affectation du personnel~\cite{burke2004}. Les traiter séparément pose une difficulté simple : un lit ouvert sans personnel ne permet pas de soigner, et un personnel affecté sans lit disponible est mal employé. Cette planification doit en outre respecter les qualifications, les disponibilités et les temps de repos, et résister aux pics d'activité, aux absences et aux fermetures de lits.
+
+\indent C'est dans ce cadre que s'inscrit ce projet, réalisé dans le cadre du module \textbf{Santé digitale et ingénierie des systèmes de santé} à l'ENSAM Rabat. Il porte sur la conception et le développement d'un \textbf{outil d'aide à la décision pour la planification des lits et du personnel hospitaliers}. La solution, construite sur des données entièrement synthétiques, prévoit les admissions de $J+1$ à $J+7$, calcule des plans par quatre méthodes (naïve, Greedy, MILP/CBC et CP-SAT) et trois profils de pondération, et les restitue dans un tableau de bord doté d'un simulateur de scénarios.
+
+\indent L'objectif est de mettre en œuvre une chaîne complète, de la génération des données à la restitution des résultats, de comparer de façon chiffrée plusieurs stratégies d'allocation, y compris dans des situations dégradées, et de rendre lisibles les arbitrages entre l'accueil des patients et la charge du personnel.
+
+\indent Ce rapport est organisé en six chapitres :
+
 \begin{itemize}
-    \item \textbf{Une demande variable} : une partie des admissions, en particulier aux urgences, n'est pas programmée et dépend du calendrier et d'événements imprévus ;
-    \item \textbf{Une capacité physique fixe} : le nombre de lits d'un service ne s'ajuste pas à court terme, et un patient admis occupe un lit pendant plusieurs jours ;
-    \item \textbf{Un personnel limité} : chaque lit ouvert demande des médecins, des infirmiers et des aides-soignants qualifiés, jour et nuit, dans le respect des temps de repos ;
-    \item \textbf{Des aléas} : absences, pics d'activité et fermetures de lits obligent à replanifier.
+    \setlength{\itemsep}{1pt}
+    \setlength{\leftmargin}{1.2em}
+
+    \item \textbf{Chapitre 1 -- Contexte et analyse des besoins :}
+    présentation de l'hôpital étudié, de la problématique, des besoins et de l'organisation du projet.
+
+    \item \textbf{Chapitre 2 -- Cadre réglementaire, normatif et organisationnel :}
+    présentation de la loi 09-08, des normes HL7 FHIR et ISO, des utilisateurs et du processus de décision.
+
+    \item \textbf{Chapitre 3 -- Étude technique et choix technologiques :}
+    présentation des méthodes comparées, des outils utilisés et justification des choix.
+
+    \item \textbf{Chapitre 4 -- Analyse et conception du système :}
+    description de l'architecture, du modèle mathématique, des profils, du validateur et de l'interface.
+
+    \item \textbf{Chapitre 5 -- Réalisation et implémentation :}
+    présentation du code, de l'API, du tableau de bord et du simulateur.
+
+    \item \textbf{Chapitre 6 -- Tests, validation et analyse des résultats :}
+    présentation des tests, des prévisions, de la comparaison des méthodes, de la sensibilité et des limites.
 \end{itemize}
 
-\section*{Une Planification Souvent Cloisonnée}
-Les travaux de recherche opérationnelle distinguent deux familles de décisions~\cite{hulshof2012} : la gestion des lits~\cite{hallbeds} et l'affectation du personnel~\cite{burke2004}. Les traiter séparément pose une difficulté simple : un lit ouvert sans personnel ne permet pas de soigner, et un personnel affecté sans lit disponible est mal employé. Le projet part de cette observation et traite les deux décisions dans un même modèle, à partir d'une prévision de la demande.
-
-\section*{Objectifs et Positionnement du Projet}
-Réalisé au sein de la filière INDIA de l'ENSAM Rabat, dans le cadre du module \textbf{Santé Digitale}, ce projet conçoit, implémente et évalue un \textbf{prototype d'aide à la décision pour la planification des lits et du personnel}. Il doit :
-\begin{enumerate}
-    \item \textbf{Prévoir} les admissions par service de $J+1$ à $J+7$ ;
-    \item \textbf{Traduire} cette prévision en besoins de lits et de personnel, en suivant les séjours des patients ;
-    \item \textbf{Planifier conjointement} l'ouverture des lits et les postes individuels, avec repos minimal, qualifications et nombre maximal de postes ;
-    \item \textbf{Comparer} quatre méthodes (naïve, Greedy, MILP/CBC, CP-SAT) et trois profils de pondération, en contrôlant chaque plan par un validateur indépendant ;
-    \item \textbf{Évaluer} la réponse de l'hôpital à six scénarios, dont des cas dégradés (pic d'activité, absences, crise combinée, fermeture de lits), et sa sensibilité sur \NbCas{} cas ;
-    \item \textbf{Restituer} les résultats dans une API et un tableau de bord de dix vues, avec un simulateur de scénario personnalisé ;
-    \item \textbf{Situer} l'outil dans son cadre réglementaire, normatif et organisationnel.
-\end{enumerate}
-
-\begin{notebox}{Nature des données}
-Toutes les données sont \textbf{synthétiques} : aucune donnée de patient ou de professionnel réel n'est utilisée. Les effectifs, cibles, durées de séjour et poids sont des hypothèses de démonstration, pas des normes cliniques ou réglementaires.
-\end{notebox}
-
-\section*{Organisation du Rapport de Projet}
-Le rapport comprend six chapitres, une conclusion générale, une bibliographie et des annexes :
-\begin{itemize}
-    \item \textbf{Chapitre 1 -- Contexte et analyse des besoins :} hôpital étudié, problématique, besoins et organisation du projet ;
-    \item \textbf{Chapitre 2 -- Cadre réglementaire, normatif et organisationnel :} loi 09-08, CNDP, HL7 FHIR, ISO/IEC 27001 et ISO 27799, utilisateurs et processus de décision ;
-    \item \textbf{Chapitre 3 -- Étude technique et choix technologiques :} méthodes d'optimisation, modèles de prévision et outils logiciels ;
-    \item \textbf{Chapitre 4 -- Analyse et conception du système :} modèle mathématique, objectif, profils, validateur et interface ;
-    \item \textbf{Chapitre 5 -- Réalisation et implémentation :} code, API, tableau de bord et simulateur ;
-    \item \textbf{Chapitre 6 -- Tests, validation et analyse des résultats :} tests, prévisions, comparaison des méthodes, arbitrages, sensibilité et limites.
-\end{itemize}
+\indent Enfin, la conclusion générale synthétise les réalisations et les résultats obtenus, puis présente les perspectives d'évolution, notamment le recalibrage de l'effectif, l'intégration au système d'information hospitalier et la prise en compte de l'incertitude.
+\endgroup
