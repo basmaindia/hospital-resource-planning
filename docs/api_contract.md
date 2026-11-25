@@ -15,6 +15,7 @@ L'API FastAPI est versionnée sous `/api/v1`. Les lectures de configuration, job
 | `GET /api/v1/dashboard/scenario-comparison` | KPI d'une expérience par scénario pour un profil (`?profile=`, `equilibre` par défaut ; graine de référence, ou `?seed=` explicite ; `?scope=custom` pour les simulations, jamais mélangées à S0–S5) | lecture d'artefacts stockés |
 | `GET /api/v1/dashboard/profiles` | profils de pondération et leurs poids | lecture de `configs/profiles.json` |
 | `GET /api/v1/dashboard/sensitivity/manifest` | grille déclarative de sensibilité | lecture de `results/experiments/sensitivity_manifest.csv` |
+| `GET /api/v1/dashboard/sensitivity/results` | KPI des cas calculés pour un profil (`?profile=`) | lecture de `results/experiments/sensitivity_results.csv` |
 | `GET /api/v1/dashboard/forecasts` | prévisions finales et métriques | lecture de `results/forecasts/` |
 | `GET /api/v1/dashboard/exploration` | admissions, occupation, capacité | lecture de `data/synthetic/` |
 | `GET /api/v1/dashboard/operational/{scenario_id}` | besoins opérationnels | lecture de `results/operational_instances/` |

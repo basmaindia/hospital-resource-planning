@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Activity, BedDouble, ChevronRight, CircleAlert, Database, Download, FlaskConical, Gauge, HeartPulse, LineChart as LineChartIcon, Network, BarChart3, SlidersHorizontal } from "lucide-react";
 
-import { artifactDownloadUrl, loadAllocation, loadExperimentDetail, loadJob, loadProfiles, loadScenarioComparison, loadSensitivityManifest, submitExperiment } from "../lib/api-client";
-import type { AllocationArtifact, DashboardBootstrap, ExperimentDetail, ExperimentMetric, JobResponse, LoadState, Profile, Scenario, SensitivityManifestEntry } from "../lib/api-types";
-import { fmt, methodLabel, serviceColors, serviceLabels } from "./dashboard-data";
+import { artifactDownloadUrl, loadAllocation, loadExperimentDetail, loadJob, loadProfiles, loadScenarioComparison, submitExperiment } from "../lib/api-client";
+import type { AllocationArtifact, DashboardBootstrap, ExperimentDetail, ExperimentMetric, JobResponse, LoadState, Profile, Scenario } from "../lib/api-types";
+import { fmt, methodColors, methodLabel, serviceColors, serviceLabels } from "./dashboard-data";
+import { SensitivityView } from "./sensitivity";
 import { SimulatorView } from "./simulator";
 import { constraintsLabel, coveredRate, CoverageMatrix, percent, ShortageHeatmap, StaffPlanning } from "./staffing";
 
@@ -108,7 +109,6 @@ const comparisonKpis = [
   { key: "runtime_seconds", label: "Temps de calcul", unit: "s", lowerIsBetter: true },
 ] as const;
 type ComparisonKpi = (typeof comparisonKpis)[number]["key"];
-const methodColors: Record<string, string> = { naive: "#94a3b8", greedy: "#2c7a7b", milp: "#6054d8", cp_sat: "#ef6b5d" };
 
 function metricValue(row: ExperimentMetric, key: ComparisonKpi) { const raw = row[key]; if (raw === null || raw === undefined) return null; return key === "coverage_rate" || key === "staff_coverage_rate" ? Number(raw) * 100 : Number(raw); }
 
@@ -158,14 +158,6 @@ function ComparisonView({ apiBaseUrl }: { apiBaseUrl: string }) {
     <Card><h2>Meilleure méthode par scénario (objectif du profil)</h2><div className="service-stack">{best.map((item) => <div className="best-row" key={item.scenario}><i className="service-dot" style={{ background: methodColors[item.winner?.method_name ?? "greedy"] }} /><strong>{item.scenario}</strong><span>{item.winner ? `${item.tied.join(" et ")}${item.tied.length > 1 ? " (ex æquo)" : ""} — objectif ${fmt.format(item.winner.objective_value ?? 0)}, ${item.winner.rejected_admissions ?? "n/a"} refus, ${item.winner.staff_shortage_total ?? "n/a"} postes manquants, ${item.winner.runtime_seconds.toFixed(2)} s` : "n/a"}</span></div>)}</div><p className="chart-caption">Gap = écart d’optimalité déclaré par le solveur (borne inférieure vs solution). « — » : non fourni (Naïve et Greedy n’ont pas de borne). Équité = somme par rôle des écarts de charge entre agents présents ; les agents absents sur tout l’horizon sont exclus.{budget ? ` Budget par solveur exact : ${budget}.` : ""}</p></Card><CustomComparison rows={customRows} baseline={baseline} /></>;
 }
 
-function SensitivityView({ apiBaseUrl }: { apiBaseUrl: string }) {
-  const [manifest, setManifest] = useState<LoadState<SensitivityManifestEntry[]>>({ status: "loading" });
-  useEffect(() => { let active = true; void loadSensitivityManifest(apiBaseUrl).then((result) => { if (active) setManifest(result); }); return () => { active = false; }; }, [apiBaseUrl]);
-  if (manifest.status !== "success") return <><Header title="Analyse de sensibilité" trail="manifeste">La grille déclarative est lue sans lancer de calcul.</Header><State resource={manifest} label="le manifeste de sensibilité" /></>;
-  const entries = manifest.data;
-  const exactCalls = entries.reduce((sum, item) => sum + item.exact_calls, 0);
-  return <><Header title="Analyse de sensibilité" trail="manifeste">Grille déclarative réellement persistée : aucune courbe de résultat n’est produite avant une exécution manuelle contrôlée.</Header><div className="kpi-grid"><Kpi label="Instances prévues" value={fmt.format(entries.length)} note="scénarios déclaratifs" /><Kpi label="Appels exacts estimés" value={fmt.format(exactCalls)} note="MILP et CP-SAT potentiels" /><Kpi label="Résultats analysables" value="0" note="aucune campagne déclenchée" /><Kpi label="Exécution" value="Manuelle" note="jamais automatique" /></div><Card><h2>Manifeste de sensibilité</h2><div className="table-wrap"><table><thead><tr><th>ID</th><th>Demande</th><th>Absence</th><th>Capacité</th><th>Graine</th><th>Appels exacts</th></tr></thead><tbody>{entries.slice(0, 12).map((item) => <tr key={item.scenario_id}><td>{item.scenario_id}</td><td>× {item.demand_multiplier.toFixed(2)}</td><td>{(item.absence_rate * 100).toFixed(0)} %</td><td>-{(item.capacity_reduction * 100).toFixed(0)} %</td><td>{item.seed}</td><td>{item.exact_calls}</td></tr>)}</tbody></table></div><p>Les {entries.length > 12 ? `${entries.length - 12} autres lignes` : "lignes"} restent disponibles dans l’artefact ; une API de lancement n’est pas exposée car cette grille peut être coûteuse.</p></Card></>;
-}
 function ExperimentsView({ apiBaseUrl, data, scenarioId, onRefresh }: { apiBaseUrl: string; data: DashboardBootstrap; scenarioId: string; onRefresh: () => void }) {
   const [job, setJob] = useState<JobResponse | null>(null);
   const [detail, setDetail] = useState<ExperimentDetail | null>(null);

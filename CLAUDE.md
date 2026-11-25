@@ -26,10 +26,12 @@ Code : `src/hospital_planning/` ; tests : `tests/` ; config : `configs/hospital.
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install . pytest pytest-cov ruff httpx
 $env:PYTHONPATH = "src"
-.\.venv\Scripts\python.exe -m pytest -q                      # 90 tests
+.\.venv\Scripts\python.exe -m pytest -q                      # 95 tests
 .\.venv\Scripts\python.exe -m ruff check src tests
 # Régénérer la comparaison complète (≈ 32 min, PC branché et sans veille : 50 s et 8 threads par solveur exact)
 .\.venv\Scripts\python.exe -m hospital_planning.experiments.runner --methods naive greedy milp cp_sat --profiles equilibre priorite_accueil priorite_personnel
+# Sensibilité : 80 cas Naïve + Greedy (≈ 100 s) ; --methods cp_sat --cases … pour un sous-ensemble
+.\.venv\Scripts\python.exe -m hospital_planning.experiments.sensitivity
 # API
 .\.venv\Scripts\python.exe -m uvicorn hospital_planning.api.app:app --reload --host 127.0.0.1 --port 8000
 # Dashboard (autre terminal)

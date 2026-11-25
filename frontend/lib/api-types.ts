@@ -25,6 +25,8 @@ export type ObjectiveWeights = { opened_bed: number; unmet_patient_day: number; 
 export type Profile = { profile_id: string; label: string; description: string; objective_weights: ObjectiveWeights };
 export type SensitivityManifestEntry = { scenario_id: string; absence_rate: number; demand_multiplier: number; capacity_reduction: number; seed: number; exact_calls: number };
 
+export type SensitivityRow = { scenario_id: string; method_name: string; absence_rate: number; demand_multiplier: number; capacity_reduction: number; objective_value: number | null; optimality_gap: number | null; rejected_admissions: number | null; coverage_rate: number | null; staff_shortage_total: number | null; staff_coverage_rate: number | null; fairness_metric: number | null; runtime_seconds: number; validation_passed: boolean | null };
+
 export type ForecastPoint = {
   date: string;
   service: string;

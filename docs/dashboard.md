@@ -43,7 +43,7 @@ L’API vérifie le chemin de l’artefact avant de répondre. Le lien « CSV li
 
 ## Analyse de sensibilité
 
-Le manifeste de sensibilité contient 80 instances et 160 appels exacts potentiels. Il est affiché à titre déclaratif ; les expériences correspondantes ne sont pas considérées comme exécutées tant que leurs artefacts ne sont pas persistés. Aucune courbe, heatmap ou frontière de Pareto chiffrée n’est inventée.
+La grille croise 5 taux d'absence, 4 multiplicateurs de demande et 4 fermetures de lits, soit 80 cas. `python -m hospital_planning.experiments.sensitivity` les calcule avec Naïve et Greedy (≈ 100 s) et écrit `sensitivity_results.csv` ; `--methods cp_sat --cases SENS_…` ajoute un solveur sur un sous-ensemble. La vue affiche les postes couverts selon l'absentéisme, le coût selon la demande, une heatmap absences × demande (cinq indicateurs), la comparaison des méthodes et le tableau des cas. Les cas qui ne respectent pas les contraintes restent visibles mais marqués (points évidés, ✕).
 
 ## État fonctionnel final de la phase 9
 
@@ -53,7 +53,7 @@ Le manifeste de sensibilité contient 80 instances et 160 appels exacts potentie
 - Deux indicateurs distincts remplacent la mention « solution valide » : « contraintes respectées » (capacité, cohortes, disponibilités, qualifications, repos, dotation minimale, vérifiées par le validateur) et « % de postes cibles couverts » (1 − postes manquants / postes cibles). Un plan peut respecter toutes les contraintes en ne couvrant que la moitié des postes cibles.
 - La vue Méthodes compare les KPI seulement lorsque plusieurs méthodes sont présentes dans une même expérience ; sinon elle explique comment obtenir une comparaison valide.
 - La vue Expériences soumet explicitement un job, suit son état, recharge le registre après `COMPLETED`, affiche ses KPI et propose les exports existants.
-- La vue Sensibilité lit le manifeste réel, son volume et son coût exact estimé, mais ne dessine aucun résultat avant une exécution explicitement persistée.
+- La vue Sensibilité ne dessine que des résultats enregistrés ; sans fichier de résultats, elle affiche un état vide explicite.
 
 ## Simulateur
 

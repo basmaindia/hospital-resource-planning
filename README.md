@@ -101,7 +101,7 @@ $env:PYTHONPATH = "src"
 .\.venv\Scripts\python.exe -m hospital_planning.experiments.runner
 ```
 
-La commande crée les expériences Greedy S0–S5 dans `results/experiments/`. Ajouter `--methods naive greedy milp cp_sat --profiles equilibre priorite_accueil priorite_personnel` pour comparer les quatre méthodes et les trois profils (≈ 106 s par scénario et par profil, ≈ 32 min au total, PC branché et sans mise en veille). Le budget par solveur exact, 50 s et 8 threads par défaut, se règle dans `configs/hospital.json` ou avec `--time-limit` et `--workers`. Le manifeste de sensibilité à 80 scénarios s'obtient avec `--sensitivity-manifest`. Voir [docs/experiments.md](docs/experiments.md).
+La commande crée les expériences Greedy S0–S5 dans `results/experiments/`. Ajouter `--methods naive greedy milp cp_sat --profiles equilibre priorite_accueil priorite_personnel` pour comparer les quatre méthodes et les trois profils (≈ 106 s par scénario et par profil, ≈ 32 min au total, PC branché et sans mise en veille). Le budget par solveur exact, 50 s et 8 threads par défaut, se règle dans `configs/hospital.json` ou avec `--time-limit` et `--workers`. Le manifeste de sensibilité à 80 scénarios s'obtient avec `--sensitivity-manifest` et se calcule avec `python -m hospital_planning.experiments.sensitivity` (≈ 100 s en Naïve et Greedy). Voir [docs/experiments.md](docs/experiments.md).
 
 ## Démarrer l'API locale
 

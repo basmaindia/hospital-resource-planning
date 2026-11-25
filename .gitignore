@@ -38,6 +38,7 @@ results/operational_instances/S0/*
 !results/operational_instances/S0/staff_requirements.csv
 results/experiments/*
 !results/experiments/sensitivity_manifest.csv
+!results/experiments/sensitivity_results.csv
 !results/experiments/scenario_summary.csv
 !results/experiments/experiment-*/
 results/experiments/experiment-*/*

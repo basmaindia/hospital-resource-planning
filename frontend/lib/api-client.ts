@@ -1,4 +1,4 @@
-import type { AllocationArtifact, DashboardBootstrap, ExperimentDetail, ExperimentJobRequest, ExperimentMetric, ExperimentSummary, HospitalConfig, JobResponse, LoadState, OperationalArtifact, Profile, Scenario, ForecastArtifact, ExplorationArtifact, SensitivityManifestEntry } from "./api-types";
+import type { AllocationArtifact, DashboardBootstrap, ExperimentDetail, ExperimentJobRequest, ExperimentMetric, ExperimentSummary, HospitalConfig, JobResponse, LoadState, OperationalArtifact, Profile, Scenario, ForecastArtifact, ExplorationArtifact, SensitivityManifestEntry, SensitivityRow } from "./api-types";
 
 export class ApiError extends Error {
   constructor(message: string, readonly status: number) { super(message); }
@@ -49,6 +49,8 @@ export function loadScenarioComparison(baseUrl: string, profileId: string, scope
 export function loadHospitalConfig(baseUrl: string) { return resource(getJson<HospitalConfig>(baseUrl, "/api/v1/config/hospital")); }
 export function loadProfiles(baseUrl: string) { return resource(getJson<Profile[]>(baseUrl, "/api/v1/dashboard/profiles")); }
 export function loadSensitivityManifest(baseUrl: string) { return resource(getJson<SensitivityManifestEntry[]>(baseUrl, "/api/v1/dashboard/sensitivity/manifest")); }
+
+export function loadSensitivityResults(baseUrl: string) { return resource(getJson<SensitivityRow[]>(baseUrl, "/api/v1/dashboard/sensitivity/results")); }
 
 export function submitExperiment(baseUrl: string, request: ExperimentJobRequest) { return sendJson<JobResponse>(baseUrl, "/api/v1/jobs/experiments", request); }
 export function loadJob(baseUrl: string, jobId: string) { return getJson<JobResponse>(baseUrl, `/api/v1/jobs/${encodeURIComponent(jobId)}`); }

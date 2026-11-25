@@ -46,4 +46,13 @@ La grille contient 5 taux d'absence × 4 multiplicateurs de demande × 4 réduct
 .\.venv\Scripts\python.exe -m hospital_planning.experiments.runner --sensitivity-manifest
 ```
 
-L'exécution exhaustive est volontairement distincte de la commande par défaut : elle doit être lancée avec un budget de calcul explicitement choisi et chaque résultat doit conserver ce budget réel.
+Calcul des 80 cas avec les heuristiques (≈ 100 s), puis d'un sous-ensemble avec CP-SAT (≈ 54 s par cas) :
+
+```powershell
+.\.venv\Scripts\python.exe -m hospital_planning.experiments.sensitivity --methods naive greedy
+.\.venv\Scripts\python.exe -m hospital_planning.experiments.sensitivity --methods cp_sat --cases SENS_A00_D100_C00 SENS_A20_D100_C00
+```
+
+Les résultats sont fusionnés dans `results/experiments/sensitivity_results.csv`. Un cas dont l'instance a changé est retiré : deux jeux de données ne sont jamais mélangés.
+
+L'exécution exhaustive avec les solveurs exacts est volontairement distincte de la commande par défaut : elle doit être lancée avec un budget de calcul explicitement choisi et chaque résultat doit conserver ce budget réel.

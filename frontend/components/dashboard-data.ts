@@ -19,3 +19,4 @@ export const roleLabels: Record<string, string> = { PHYSICIAN: "Médecins", NURS
 export const shiftLabels: Record<string, string> = { MORNING: "Matin", EVENING: "Soir", NIGHT: "Nuit" };
 export const shiftOrder: Record<string, number> = { MORNING: 0, EVENING: 1, NIGHT: 2 };
 export function methodLabel(method: string) { return method === "milp" ? "MILP / CBC" : method === "cp_sat" ? "CP-SAT" : method === "naive" ? "Naïve" : "Greedy"; }
+export const methodColors: Record<string, string> = { naive: "#94a3b8", greedy: "#2c7a7b", milp: "#6054d8", cp_sat: "#ef6b5d" };

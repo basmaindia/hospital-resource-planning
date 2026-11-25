@@ -31,6 +31,7 @@ from hospital_planning.domain.contracts import (
 )
 from hospital_planning.experiments.runner import run_experiment, save_experiment
 from hospital_planning.experiments.scenarios import CUSTOM_PREFIX, custom_definition, load_scenarios
+from hospital_planning.experiments.sensitivity import RESULTS_FILE as SENSITIVITY_RESULTS_FILE
 from hospital_planning.optimization.availability import project_planning_availability
 
 app = FastAPI(
@@ -273,6 +274,17 @@ def get_sensitivity_manifest() -> list[SensitivityManifestEntry]:
     if not path.is_file():
         raise HTTPException(status_code=404, detail="Manifeste de sensibilité non généré.")
     return [SensitivityManifestEntry.model_validate(record) for record in _csv_records(path)]
+
+
+@app.get("/api/v1/dashboard/sensitivity/results")
+def get_sensitivity_results(profile: str = DEFAULT_PROFILE_ID) -> list[dict[str, object]]:
+    """Lit les KPI de sensibilité déjà calculés pour un profil, sans lancer de calcul."""
+    path = experiments_root() / SENSITIVITY_RESULTS_FILE
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Analyse de sensibilité non calculée.")
+    frame = pd.read_csv(path)
+    frame = frame[frame["profile_id"] == profile]
+    return frame.astype(object).where(pd.notna(frame), None).to_dict(orient="records")
 
 
 @app.get("/api/v1/dashboard/forecasts", response_model=ForecastArtifactResponse)
