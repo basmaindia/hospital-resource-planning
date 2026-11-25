@@ -1,0 +1,43 @@
+{
+  "experiment_id": "experiment-s3_staff_absence-49dafb2325b2",
+  "created_at": "2026-11-25T00:56:56.991372+00:00",
+  "scenario": {
+    "scenario_id": "S3_STAFF_ABSENCE",
+    "description": "Indisponibilité supplémentaire de 15 % des professionnels disponibles.",
+    "demand_multiplier": 1.0,
+    "absence_rate": 0.15,
+    "capacity_reduction": 0.0,
+    "service_multipliers": {},
+    "peak_days": null
+  },
+  "seed": 42,
+  "scenario_input_hash": "49dafb2325b26f48aefcf42c78554158fbd3dcc4bdac2123d5df91ad8657ce9a",
+  "methods": [
+    "greedy",
+    "milp",
+    "cp_sat"
+  ],
+  "method_artifacts": {
+    "greedy": {
+      "bed_allocations": "greedy/bed_allocations.csv",
+      "staff_assignments": "greedy/staff_assignments.csv",
+      "staff_coverage": "greedy/staff_coverage.csv",
+      "planning_availability": "greedy/planning_availability.csv",
+      "method_result": "greedy/method_result.json"
+    },
+    "milp": {
+      "bed_allocations": "milp/bed_allocations.csv",
+      "staff_assignments": "milp/staff_assignments.csv",
+      "staff_coverage": "milp/staff_coverage.csv",
+      "planning_availability": "milp/planning_availability.csv",
+      "method_result": "milp/method_result.json"
+    },
+    "cp_sat": {
+      "bed_allocations": "cp_sat/bed_allocations.csv",
+      "staff_assignments": "cp_sat/staff_assignments.csv",
+      "staff_coverage": "cp_sat/staff_coverage.csv",
+      "planning_availability": "cp_sat/planning_availability.csv",
+      "method_result": "cp_sat/method_result.json"
+    }
+  }
+}

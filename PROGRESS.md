@@ -38,7 +38,37 @@ Dernière synthèse : novembre 2026. Ce fichier décrit l’état observable du 
 
 Le dépôt sélectionne 79 fichiers d'artefacts, soit 34 173 770 octets (32,59 Mio) : les données synthétiques complètes, six fichiers de prévision, l'instance opérationnelle S0, le manifeste de sensibilité et six expériences persistées (S0/Greedy, S1/MILP, S2/Greedy, S3/Greedy, S4/Greedy, S5/CP-SAT). Les chemins de métadonnées de ces expériences sont relatifs au projet. Un test de lecture depuis un autre dossier a retrouvé 6 scénarios, 4 380 observations historiques, 140 prévisions, 28 besoins opérationnels, 80 lignes de manifeste et les 28 allocations de chacune des 6 expériences.
 
-Les doublons locaux S3 et S4, les sorties d'allocation autonomes, les artefacts Greedy non référencés de S1/S5, les logs et les caches restent exclus. Le contrôle textuel des artefacts sélectionnés n'a pas détecté de courriel, clé, secret ni chemin personnel. Les identifiants de professionnels présents dans les CSV sont synthétiques. Les six expériences ne fournissent pas une comparaison Greedy/MILP/CP-SAT complète sur une même instance.
+Les doublons locaux S3 et S4, les sorties d'allocation autonomes, les artefacts Greedy non référencés de S1/S5, les logs et les caches restent exclus. Le contrôle textuel des artefacts sélectionnés n'a pas détecté de courriel, clé, secret ni chemin personnel. Les identifiants de professionnels présents dans les CSV sont synthétiques. Depuis la version 2, chaque expérience contient les trois méthodes sur la même instance.
+
+## Mise à jour — version 2 (25 novembre 2026)
+
+Corrections rendant le prototype fonctionnel de bout en bout :
+
+- **Chemins d'artefacts portables** : les `experiment.json` contenaient des chemins Windows (`results\\...`), illisibles par l'API sous Linux/macOS (test en échec). Chemins désormais relatifs en `/`, et l'API accepte aussi les anciens.
+- **Hash d'instance indépendant de l'OS** : `to_csv` produisait `\r\n` sous Windows, donc un ID d'expérience différent selon le poste. Forcé à `\n`.
+- **Plus d'écrasement des méthodes** : lancer une seule méthode depuis le dashboard supprimait les autres de l'expérience. Les résultats sont désormais fusionnés.
+- **Comparaison complète** : les 6 scénarios ont été recalculés avec Greedy, MILP/CBC et CP-SAT (18 runs, 18/18 valides) ; `results/experiments/scenario_summary.csv`.
+- **Nouvelle vue « Comparaison scénarios »** (+ endpoint `/api/v1/dashboard/scenario-comparison`) : graphique groupé scénario × méthode sur 8 indicateurs, tableau avec écart vs S0, meilleure méthode par scénario.
+- Lancement « Les 3 méthodes » par défaut depuis la vue Expériences ; `.gitignore` générique pour les expériences ; avertissements ESLint corrigés ; 3 tests de non-régression (`tests/test_portability.py`). 39/39 tests, ruff, typecheck, lint et `next build` OK.
+
+### Résultats (objectif canonique, plus bas = meilleur)
+
+| Scénario | Greedy | MILP/CBC | CP-SAT | Refusées | Couverture |
+|---|---:|---:|---:|---:|---:|
+| S0 nominal | 636 379 | 636 379 | 636 378 | 4 | 99,0 % |
+| S1 pic URG | 695 559 | 695 559 | 695 558 | 29 | 96,5 % |
+| S2 hausse +25 % | 924 327 | 924 327 | 924 326 | 73 | 91,0 % |
+| S3 absences 15 % | 712 885 | 712 885 | 712 885 | 4 | 99,0 % |
+| S4 crise combinée | 1 002 335 | 1 002 335 | 1 002 335 | 73 | 91,0 % |
+| S5 fermeture 10 % lits | 674 469 | 674 469 | 674 468 | 26 | 94,1 % |
+
+Temps : Greedy ≈ 0,13 s, MILP et CP-SAT ≈ 30 s (limite atteinte). Les trois méthodes convergent : la comparaison montre surtout l'impact des scénarios, peu celui de la méthode.
+
+### Pistes restantes pour le groupe
+1. Rendre la comparaison de stratégies plus discriminante : ajouter une stratégie naïve (ex. allocation proportionnelle sans priorité de service) et/ou des profils de pondération (« minimiser les coûts » vs « maximiser l'accueil »).
+2. Volets normatif et réglementaire (loi 09-08, confidentialité, traçabilité) à documenter explicitement.
+3. Mesurer un score d'utilisabilité (SUS) du dashboard auprès de quelques utilisateurs.
+4. Compte rendu technique et répartition de la démo entre les 6 membres.
 
 ## Limites connues
 

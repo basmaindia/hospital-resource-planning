@@ -177,5 +177,5 @@ def _scenario_hash(
     digest.update(definition.model_dump_json().encode("utf-8"))
     digest.update(str(seed).encode("utf-8"))
     for table in (demand, beds, availability):
-        digest.update(table.to_csv(index=False, date_format="%Y-%m-%d").encode("utf-8"))
+        digest.update(table.to_csv(index=False, date_format="%Y-%m-%d", lineterminator="\n").encode("utf-8"))
     return digest.hexdigest()

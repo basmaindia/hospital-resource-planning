@@ -149,6 +149,33 @@ def get_experiment(experiment_id: str) -> dict[str, object]:
     return {"metadata": metadata, "metrics": metrics}
 
 
+@app.get("/api/v1/dashboard/scenario-comparison")
+def get_scenario_comparison() -> list[dict[str, object]]:
+    """Agrège les KPI persistés de l'expérience la plus récente de chaque scénario.
+
+    Chaque ligne reste attachée à son expérience (instance, scénario et méthode),
+    ce qui permet de comparer les scénarios entre eux sans mélanger les instances.
+    """
+    root = experiments_root()
+    if not root.exists():
+        return []
+    latest: dict[str, tuple[str, Path]] = {}
+    for metadata_path in sorted(root.glob("*/experiment.json")):
+        summary = _read_experiment_summary(metadata_path)
+        metrics_path = metadata_path.parent / "metrics.csv"
+        if summary is None or not metrics_path.is_file():
+            continue
+        created_at = summary.created_at.isoformat()
+        current = latest.get(summary.scenario_id)
+        if current is None or created_at > current[0]:
+            latest[summary.scenario_id] = (created_at, metrics_path)
+    rows: list[dict[str, object]] = []
+    for scenario_id in sorted(latest):
+        frame = pd.read_csv(latest[scenario_id][1])
+        rows.extend(frame.astype(object).where(pd.notna(frame), None).to_dict(orient="records"))
+    return rows
+
+
 @app.get("/api/v1/experiments/{experiment_id}/downloads/{artifact_path:path}")
 def download_experiment_artifact(experiment_id: str, artifact_path: str) -> FileResponse:
     """Télécharge un artefact existant après contrôle strict du chemin."""
@@ -316,7 +343,9 @@ def _resolve_experiment_artifact(directory: Path, raw_path: object) -> Path:
     """Résout un chemin d'artefact absolu, local ou historique sans traversée."""
     if not isinstance(raw_path, str) or not raw_path:
         raise HTTPException(status_code=404, detail="Artefact introuvable.")
-    candidate = Path(raw_path)
+    # Les métadonnées produites sous Windows contiennent des « \\ » : on les
+    # normalise pour que le dépôt fonctionne quel que soit le système.
+    candidate = Path(raw_path.replace("\\", "/"))
     candidates = [candidate.resolve()] if candidate.is_absolute() else [
         (directory / candidate).resolve(),
         (project_root() / candidate).resolve(),

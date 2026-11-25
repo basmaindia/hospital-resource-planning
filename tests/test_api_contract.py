@@ -19,6 +19,7 @@ from hospital_planning.api.app import (
     get_experiment,
     get_hospital_config,
     get_job,
+    get_scenario_comparison,
     get_sensitivity_manifest,
     health,
     list_experiments,
@@ -111,9 +112,10 @@ def test_dashboard_read_contracts_expose_only_persisted_artifacts(monkeypatch, r
     operational = get_dashboard_operational("S0")
     operational_baseline = get_dashboard_operational("S0_BASELINE")
     manifest = get_sensitivity_manifest()
-    allocation = get_dashboard_allocation("experiment-s0_baseline-16ecc53da404", "greedy")
-    milp_allocation = get_dashboard_allocation("experiment-s1_urgent_peak-73744d59852f", "milp")
-    legacy_relative_allocation = get_dashboard_allocation("experiment-s3_staff_absence-2d0da06b3a16", "greedy")
+    allocation = get_dashboard_allocation("experiment-s0_baseline-ce1292821e41", "greedy")
+    milp_allocation = get_dashboard_allocation("experiment-s1_urgent_peak-c2b5809425d4", "milp")
+    cp_sat_allocation = get_dashboard_allocation("experiment-s5_bed_closure-0c68549d6447", "cp_sat")
+    comparison = get_scenario_comparison()
 
     assert scenarios[1].scenario_id == "S1_URGENT_PEAK"
     assert scenarios[2].demand_multiplier == 1.25
@@ -130,7 +132,10 @@ def test_dashboard_read_contracts_expose_only_persisted_artifacts(monkeypatch, r
     assert all(point.occupancy_required is None for point in allocation.allocations)
     assert len(milp_allocation.allocations) == 28
     assert all(point.occupancy_required is not None for point in milp_allocation.allocations)
-    assert len(legacy_relative_allocation.allocations) == 28
+    assert len(cp_sat_allocation.allocations) == 28
+    assert len(comparison) == 6 * 3
+    assert {row["method_name"] for row in comparison} == {"greedy", "milp", "cp_sat"}
+    assert all(row["validation_passed"] for row in comparison)
 
 
 def test_dashboard_returns_explicit_not_found_when_artifacts_are_absent(monkeypatch, tmp_path) -> None:

@@ -1,0 +1,43 @@
+{
+  "experiment_id": "experiment-s5_bed_closure-0c68549d6447",
+  "created_at": "2026-11-25T00:59:00.513220+00:00",
+  "scenario": {
+    "scenario_id": "S5_BED_CLOSURE",
+    "description": "Réduction synthétique de 10 % des capacités opérationnelles.",
+    "demand_multiplier": 1.0,
+    "absence_rate": 0.0,
+    "capacity_reduction": 0.1,
+    "service_multipliers": {},
+    "peak_days": null
+  },
+  "seed": 42,
+  "scenario_input_hash": "0c68549d644779d07ffb156bd40fd7b4573fef167f716c87b5b6a5a3c6a7d04b",
+  "methods": [
+    "greedy",
+    "milp",
+    "cp_sat"
+  ],
+  "method_artifacts": {
+    "greedy": {
+      "bed_allocations": "greedy/bed_allocations.csv",
+      "staff_assignments": "greedy/staff_assignments.csv",
+      "staff_coverage": "greedy/staff_coverage.csv",
+      "planning_availability": "greedy/planning_availability.csv",
+      "method_result": "greedy/method_result.json"
+    },
+    "milp": {
+      "bed_allocations": "milp/bed_allocations.csv",
+      "staff_assignments": "milp/staff_assignments.csv",
+      "staff_coverage": "milp/staff_coverage.csv",
+      "planning_availability": "milp/planning_availability.csv",
+      "method_result": "milp/method_result.json"
+    },
+    "cp_sat": {
+      "bed_allocations": "cp_sat/bed_allocations.csv",
+      "staff_assignments": "cp_sat/staff_assignments.csv",
+      "staff_coverage": "cp_sat/staff_coverage.csv",
+      "planning_availability": "cp_sat/planning_availability.csv",
+      "method_result": "cp_sat/method_result.json"
+    }
+  }
+}

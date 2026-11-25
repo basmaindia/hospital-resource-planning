@@ -115,8 +115,8 @@ def save_greedy_result(result: GreedyResult, output_directory: Path) -> dict[str
     result_path = output_directory / "method_result.json"
     result_with_artifact_paths = result.method_result.model_copy(
         update={
-            "assignments_artifact_path": str(paths["staff_assignments"]),
-            "allocations_artifact_path": str(paths["bed_allocations"]),
+            "assignments_artifact_path": paths["staff_assignments"].as_posix(),
+            "allocations_artifact_path": paths["bed_allocations"].as_posix(),
         }
     )
     result_path.write_text(

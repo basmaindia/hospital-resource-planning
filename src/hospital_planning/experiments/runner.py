@@ -5,7 +5,7 @@ import json
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pandas as pd
 
@@ -108,7 +108,17 @@ def save_experiment(
     experiment.scenario.demand_requirements.to_csv(paths["demand"], index=False)
     experiment.scenario.bed_requirements.to_csv(paths["beds"], index=False)
     experiment.scenario.planning_availability.to_csv(paths["availability"], index=False)
-    experiment.metrics.to_csv(paths["metrics"], index=False)
+    previous = _previous_metadata(paths["metadata"], experiment.scenario.input_hash)
+    metrics = experiment.metrics
+    if previous is not None and paths["metrics"].is_file():
+        # Une méthode lancée seule (ex. depuis le dashboard) ne doit pas effacer
+        # les méthodes déjà exécutées sur la même instance : on fusionne.
+        old_metrics = pd.read_csv(paths["metrics"])
+        old_metrics = old_metrics[~old_metrics["method_name"].isin(metrics["method_name"])]
+        metrics = pd.concat([old_metrics, metrics], ignore_index=True)
+        metrics["_order"] = metrics["method_name"].map({"greedy": 0, "milp": 1, "cp_sat": 2}).fillna(9)
+        metrics = metrics.sort_values("_order").drop(columns="_order").reset_index(drop=True)
+    metrics.to_csv(paths["metrics"], index=False)
     method_paths: dict[str, dict[str, Path]] = {}
     for method_name, output in outputs.items():
         method_directory = output_directory / method_name
@@ -123,14 +133,37 @@ def save_experiment(
         "scenario": experiment.scenario.definition.model_dump(),
         "seed": experiment.scenario.seed,
         "scenario_input_hash": experiment.scenario.input_hash,
-        "methods": [result.method_name for result in experiment.method_results],
+        "methods": list(metrics["method_name"]),
         "method_artifacts": {
-            method_name: {name: str(path) for name, path in artifact_paths.items()}
-            for method_name, artifact_paths in method_paths.items()
+            **(previous or {}).get("method_artifacts", {}),
+            **{
+                # Chemins relatifs au dossier de l'expérience, en notation POSIX :
+                # le dépôt reste lisible sous Windows, Linux et macOS.
+                method_name: {name: path.relative_to(output_directory).as_posix() for name, path in paths_.items()}
+                for method_name, paths_ in method_paths.items()
+            },
         },
     }
     paths["metadata"].write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
     return paths
+
+
+def _previous_metadata(metadata_path: Path, input_hash: str) -> dict[str, object] | None:
+    """Relit une expérience existante seulement si elle porte sur la même instance."""
+    if not metadata_path.is_file():
+        return None
+    try:
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if metadata.get("scenario_input_hash") != input_hash:
+        return None
+    # Normalise les anciens chemins (absolus ou « results\\... ») en « <méthode>/<fichier> ».
+    metadata["method_artifacts"] = {
+        name: {key: f"{name}/{PurePosixPath(str(value).replace(chr(92), '/')).name}" for key, value in paths.items()}
+        for name, paths in metadata.get("method_artifacts", {}).items()
+    }
+    return metadata
 
 
 def sensitivity_manifest(config: HospitalConfig, *, seed: int | None = None) -> pd.DataFrame:
