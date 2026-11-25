@@ -14,7 +14,25 @@ L'équité est la somme, par rôle, des étendues de charge parmi tous les profe
 
 Les méthodes exposent les composantes `opened_bed_cost`, `unmet_patient_day_cost`, `staff_target_shortage_cost`, `workload_imbalance_cost` et `total_cost`. Les admissions refusées restent un KPI sans pénalité propre, afin de ne pas compter deux fois la même demande non soutenue.
 
-Une solution `FEASIBLE` obtenue à la limite de temps est conservée et validée; elle n'est jamais présentée comme optimale. CBC ne fournit pas systématiquement une borne exploitable dans cette configuration, donc son écart d'optimalité peut rester `null`.
+Une solution `FEASIBLE` obtenue à la limite de temps est conservée et validée; elle n'est jamais présentée comme optimale. Si un solveur ne trouve aucune solution dans son budget, son statut est `UNKNOWN` et aucun KPI n'est publié.
+
+## Budget de calcul
+
+`configs/hospital.json` (`planning_policy`) fixe le même budget pour les deux solveurs : `solver_time_limit_seconds` = 50 s et `solver_num_workers` = 8 threads. Un scénario complet (Greedy, MILP et CP-SAT) reste sous 2 minutes sur un poste à 8 threads. Le budget peut être remplacé sans modifier la configuration :
+
+- ligne de commande : `--time-limit 20 --workers 4` sur `hospital_planning.experiments.runner`;
+- API : champs optionnels `solver_time_limit_seconds` (1 à 600) et `solver_num_workers` (1 à 64) de `POST /api/v1/jobs/experiments`.
+
+Chaque `method_result.json` et chaque ligne de `metrics.csv` conserve le budget réellement appliqué.
+
+## Point de départ, borne et écart d'optimalité
+
+- **MILP/CBC** démarre sans solution initiale. Avec la solution Greedy en *warm start*, CBC n'en sortait pas et rendait exactement la baseline.
+- **CP-SAT** reçoit la solution Greedy comme indice (*hint*), puis cherche en parallèle sur plusieurs threads.
+- `best_bound` est la meilleure borne inférieure prouvée. Pour CBC, elle est lue dans son journal (« best possible ») et corrigée du terme constant de l'objectif. `optimality_gap = (objectif − borne) / objectif`.
+- `OPTIMAL` n'est déclaré pour CBC que si sa recherche est terminée. Interrompu au nœud racine, CBC peut annoncer « Optimal solution found » pour une simple solution courante : ce cas est enregistré `FEASIBLE` / `OptimalNotProven`.
+
+La recherche parallèle limitée par le temps n'est pas strictement déterministe : relancer CP-SAT peut donner une valeur légèrement différente. Greedy reste déterministe.
 
 ## Déficit structurel S0
 

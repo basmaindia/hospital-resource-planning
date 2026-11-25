@@ -9,7 +9,7 @@ from pathlib import Path, PurePosixPath
 
 import pandas as pd
 
-from hospital_planning.config.loader import load_hospital_config
+from hospital_planning.config.loader import load_hospital_config, with_solver_settings
 from hospital_planning.domain.contracts import HospitalConfig, MethodResult
 from hospital_planning.domain.enums import MethodStatus
 from hospital_planning.experiments.scenarios import (
@@ -235,7 +235,10 @@ def _metrics_frame(
                 "native_status": result.native_status,
                 "runtime_seconds": result.runtime_seconds,
                 "objective_value": result.objective_value,
+                "best_bound": result.best_bound,
                 "optimality_gap": result.optimality_gap,
+                "solver_time_limit_seconds": result.solver_time_limit_seconds,
+                "solver_num_workers": result.solver_num_workers,
                 "unmet_demand_patient_days": result.unmet_demand_patient_days,
                 "rejected_admissions": result.rejected_admissions,
                 "staff_shortage_total": result.staff_shortage_total,
@@ -263,9 +266,11 @@ def main() -> None:
     parser.add_argument("--availability", type=Path, default=Path("data/synthetic/staff_availability.csv"))
     parser.add_argument("--output", type=Path, default=Path("results/experiments"))
     parser.add_argument("--methods", nargs="+", choices=("greedy", "milp", "cp_sat"), default=["greedy"])
+    parser.add_argument("--time-limit", type=int, help="Limite en secondes par solveur exact (défaut : configuration).")
+    parser.add_argument("--workers", type=int, help="Threads par solveur exact (défaut : configuration).")
     parser.add_argument("--sensitivity-manifest", action="store_true")
     arguments = parser.parse_args()
-    config = load_hospital_config(arguments.config)
+    config = with_solver_settings(load_hospital_config(arguments.config), arguments.time_limit, arguments.workers)
     if arguments.sensitivity_manifest:
         arguments.output.mkdir(parents=True, exist_ok=True)
         sensitivity_manifest(config).to_csv(arguments.output / "sensitivity_manifest.csv", index=False)

@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from hospital_planning.api.jobs import JobRegistry
-from hospital_planning.config.loader import load_hospital_config
+from hospital_planning.config.loader import load_hospital_config, with_solver_settings
 from hospital_planning.domain.contracts import (
     AllocationArtifactResponse,
     ArtifactProvenance,
@@ -317,6 +317,12 @@ def get_dashboard_allocation(experiment_id: str, method_name: str) -> Allocation
     result_path = _resolve_experiment_artifact(directory, artifacts.get("method_result"))
     _require_files(allocations_path, coverage_path, result_path, detail="Artefacts d'allocation non générés.")
     result = MethodResult.model_validate(_read_json(result_path, detail="Résultat de méthode invalide."))
+    if result.objective_value is None:
+        # Budget épuisé avant toute solution : les tables d'allocation sont vides.
+        raise HTTPException(
+            status_code=404,
+            detail=f"Aucune solution trouvée par {method_name} (statut {result.status.value}, {result.native_status}).",
+        )
     return AllocationArtifactResponse(
         provenance=ArtifactProvenance(
             artifact_path=str(directory.relative_to(experiments_root().resolve())),
@@ -410,7 +416,11 @@ def _read_experiment_summary(metadata_path: Path) -> ExperimentSummary | None:
 def _run_experiment_job(request: ExperimentJobRequest) -> list[str]:
     """Exécute les scénarios demandés dans l'unique worker local borné."""
     root = project_root()
-    config = load_hospital_config(hospital_config_path())
+    config = with_solver_settings(
+        load_hospital_config(hospital_config_path()),
+        request.solver_time_limit_seconds,
+        request.solver_num_workers,
+    )
     instance_directory = root / "results" / "operational_instances" / "S0"
     demand = pd.read_csv(instance_directory / "demand_requirements.csv", parse_dates=["date"])
     beds = pd.read_csv(instance_directory / "bed_requirements.csv", parse_dates=["date"])

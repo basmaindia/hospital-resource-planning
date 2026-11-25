@@ -184,7 +184,10 @@ class MethodResult(BaseModel):
     runtime_seconds: NonNegativeFloat
     objective_value: float | None = None
     objective_components: ObjectiveComponents | None = None
+    best_bound: float | None = None
     optimality_gap: NonNegativeFloat | None = None
+    solver_time_limit_seconds: PositiveInt | None = None
+    solver_num_workers: PositiveInt | None = None
     unmet_demand_patient_days: NonNegativeInt | None = None
     rejected_admissions: NonNegativeInt | None = None
     staff_shortage_total: NonNegativeInt | None = None
@@ -219,6 +222,8 @@ class ExperimentJobRequest(BaseModel):
     scenario_ids: list[str] | None = None
     methods: list[Literal["greedy", "milp", "cp_sat"]] = Field(default_factory=lambda: ["greedy"])
     seed: NonNegativeInt | None = None
+    solver_time_limit_seconds: Annotated[int, Field(ge=1, le=600)] | None = None
+    solver_num_workers: Annotated[int, Field(ge=1, le=64)] | None = None
 
     @field_validator("methods")
     @classmethod

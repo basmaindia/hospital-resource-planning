@@ -1,9 +1,11 @@
 """Solveurs MILP/CBC et CP-SAT équivalents pour l'instance canonique."""
 
 import json
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from time import perf_counter
 
 import pandas as pd
@@ -64,41 +66,42 @@ def run_milp(
     inputs, planning_availability = _build_inputs(
         demand_requirements, bed_requirements, staff, historical_availability, config, planning_availability
     )
-    greedy_hint = run_greedy(
-        demand_requirements,
-        bed_requirements,
-        staff,
-        historical_availability,
-        instance_metadata,
-        config,
-        planning_availability,
-    )
     model = pulp.LpProblem("hospital_planning_milp", pulp.LpMinimize)
     variables = _create_pulp_variables(model, inputs, config)
     _add_pulp_constraints(model, variables, inputs, config)
-    use_warm_start = len(inputs.dates) > 1
-    if use_warm_start:
-        _set_pulp_hint(variables, inputs, greedy_hint, staff)
-    model += _pulp_objective(variables, inputs, config)
-    stats = model.solve(
-        pulp.COIN_CMD(
-            msg=False,
-            timeLimit=config.planning_policy.solver_time_limit_seconds,
-            threads=config.planning_policy.solver_num_workers,
-            warmStart=use_warm_start,
-            keepFiles=use_warm_start,
+    objective = _pulp_objective(variables, inputs, config)
+    model += objective
+    # Pas de solution initiale Greedy : CBC restait bloqué dessus et rendait
+    # exactement la baseline, ce qui rendait la comparaison sans objet.
+    with TemporaryDirectory(prefix="hospital-cbc-") as log_directory:
+        log_path = Path(log_directory) / "cbc.log"
+        stats = model.solve(
+            pulp.COIN_CMD(
+                msg=False,
+                timeLimit=config.planning_policy.solver_time_limit_seconds,
+                threads=config.planning_policy.solver_num_workers,
+                randomSeed=config.random_seed,
+                logPath=str(log_path),
+            )
         )
-    )
-    _cleanup_pulp_temporary_files(model.name)
+        log = log_path.read_text(encoding="utf-8", errors="replace")
     native_status = stats.status_str
-    if native_status.lower() not in {"optimal", "optimal solution found"} and not _pulp_has_incumbent(variables):
+    if not stats.has_solution:
         return _empty_result("milp", native_status, perf_counter() - started_perf, instance_metadata, config)
+    proven = native_status == "Optimal" and _cbc_search_completed(log)
+    if native_status == "Optimal" and not proven:
+        native_status = "OptimalNotProven"
+    objective_value = float(pulp.value(objective))
+    if proven:
+        best_bound = objective_value
+    else:
+        # CBC raisonne sans le terme constant de l'objectif : on le réintègre.
+        cbc_bound = _cbc_best_bound(log)
+        best_bound = None if cbc_bound is None else cbc_bound + float(objective.constant)
     bed_allocations, assignments = _extract_pulp_solution(variables, inputs, config)
     return _finalize_result(
         "milp",
-        MethodStatus.OPTIMAL
-        if native_status.lower() in {"optimal", "optimal solution found"}
-        else MethodStatus.FEASIBLE,
+        MethodStatus.OPTIMAL if proven else MethodStatus.FEASIBLE,
         native_status,
         perf_counter() - started_perf,
         started_at,
@@ -108,7 +111,7 @@ def run_milp(
         staff,
         instance_metadata,
         config,
-        None,
+        best_bound,
         bed_requirements,
     )
 
@@ -147,15 +150,13 @@ def run_cp_sat(
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = config.planning_policy.solver_time_limit_seconds
     solver.parameters.num_search_workers = config.planning_policy.solver_num_workers
+    solver.parameters.random_seed = config.random_seed
     status_code = solver.solve(model)
     native_status = solver.status_name(status_code)
     if status_code not in {cp_model.OPTIMAL, cp_model.FEASIBLE}:
         return _empty_result("cp_sat", native_status, perf_counter() - started_perf, instance_metadata, config)
     status = MethodStatus.OPTIMAL if status_code == cp_model.OPTIMAL else MethodStatus.FEASIBLE
     bed_allocations, assignments = _extract_cp_sat_solution(solver, variables, inputs, config)
-    optimality_gap = None
-    if status == MethodStatus.FEASIBLE and solver.objective_value:
-        optimality_gap = max((solver.objective_value - solver.best_objective_bound) / solver.objective_value, 0.0)
     return _finalize_result(
         "cp_sat",
         status,
@@ -168,7 +169,7 @@ def run_cp_sat(
         staff,
         instance_metadata,
         config,
-        optimality_gap,
+        float(solver.best_objective_bound),
         bed_requirements,
     )
 
@@ -313,16 +314,6 @@ def _hint_values(
     return values
 
 
-def _set_pulp_hint(
-    variables: dict[str, dict[object, object]],
-    inputs: ExactInputs,
-    greedy_hint: GreedyResult,
-    staff: pd.DataFrame,
-) -> None:
-    for variable, value in _hint_values(variables, inputs, greedy_hint, staff).items():
-        variable.setInitialValue(value)
-
-
 def _set_cp_sat_hint(
     model: object,
     variables: dict[str, dict[object, object]],
@@ -334,17 +325,44 @@ def _set_cp_sat_hint(
         model.add_hint(variable, value)
 
 
-def _pulp_has_incumbent(variables: dict[str, dict[object, object]]) -> bool:
-    """CBC peut atteindre la limite tout en laissant une solution initiale valide."""
-    return all(variable.varValue is not None for variable in variables["accepted"].values())
+_CBC_NUMBER = r"(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)"
+_CBC_INCOMPLETE_MARKERS = (
+    "Exiting on maximum",
+    "Stopped on",
+    "Partial search",
+    "LP relaxation is infeasible or too expensive",
+)
 
 
-def _cleanup_pulp_temporary_files(model_name: str) -> None:
-    """Supprime uniquement les fichiers intermédiaires CBC créés par le warm start."""
-    for suffix in (".mps", ".mst", ".sol"):
-        path = Path(f"{model_name}-pulp{suffix}")
-        if path.exists():
-            path.unlink()
+def _cbc_search_completed(log: str) -> bool:
+    """Indique si CBC a réellement terminé sa recherche.
+
+    Interrompu pendant le nœud racine, CBC peut annoncer « Optimal solution found »
+    pour un simple incumbent : ce statut seul ne prouve donc pas l'optimalité.
+    """
+    return bool(log) and not any(marker in log for marker in _CBC_INCOMPLETE_MARKERS)
+
+
+def _cbc_best_bound(log: str) -> float | None:
+    """Extrait la meilleure borne du journal CBC, sans le terme constant.
+
+    « best possible » est plus précis que « Lower bound », arrondi à six chiffres.
+    """
+    for pattern in (rf"best possible {_CBC_NUMBER}", rf"Lower bound:\s+{_CBC_NUMBER}"):
+        values = [float(value) for value in re.findall(pattern, log)]
+        values = [value for value in values if abs(value) < 1e100]
+        if values:
+            return values[-1]
+    return None
+
+
+def _relative_gap(objective_value: float, best_bound: float | None) -> float | None:
+    """Écart relatif (solution - borne) / solution, ou None sans borne exploitable."""
+    if best_bound is None:
+        return None
+    if objective_value == 0:
+        return 0.0 if best_bound >= 0 else None
+    return max((objective_value - best_bound) / objective_value, 0.0)
 
 
 def _create_pulp_variables(
@@ -673,7 +691,7 @@ def _finalize_result(
     staff: pd.DataFrame,
     instance_metadata: dict[str, object],
     config: HospitalConfig,
-    optimality_gap: float | None,
+    best_bound: float | None,
     bed_requirements: pd.DataFrame,
 ) -> ExactResult:
     del started_at
@@ -694,7 +712,7 @@ def _finalize_result(
         staff,
         config,
         planning_availability,
-        optimality_gap,
+        best_bound,
     )
 
 
@@ -711,7 +729,7 @@ def _result_from_artifacts(
     staff: pd.DataFrame,
     config: HospitalConfig,
     planning_availability: pd.DataFrame,
-    optimality_gap: float | None,
+    best_bound: float | None,
 ) -> ExactResult:
     required_occupancy = int(bed_allocations["occupancy_required"].sum())
     supported_occupancy = int(bed_allocations["occupancy_end"].sum())
@@ -733,7 +751,10 @@ def _result_from_artifacts(
         runtime_seconds=runtime_seconds,
         objective_value=components.total_cost,
         objective_components=components,
-        optimality_gap=optimality_gap,
+        best_bound=best_bound,
+        optimality_gap=_relative_gap(components.total_cost, best_bound),
+        solver_time_limit_seconds=config.planning_policy.solver_time_limit_seconds,
+        solver_num_workers=config.planning_policy.solver_num_workers,
         unmet_demand_patient_days=unmet_patient_days,
         rejected_admissions=int(bed_allocations["rejected_admissions"].sum()),
         staff_shortage_total=shortage,
@@ -765,6 +786,8 @@ def _empty_result(
         seed=config.random_seed,
         config_hash=instance["forecast"]["config_hash"],
         native_status=native_status,
+        solver_time_limit_seconds=config.planning_policy.solver_time_limit_seconds,
+        solver_num_workers=config.planning_policy.solver_num_workers,
     )
     empty_assignments = pd.DataFrame(columns=["staff_id", "date", "service", "shift", "role"])
     empty_beds = pd.DataFrame()
