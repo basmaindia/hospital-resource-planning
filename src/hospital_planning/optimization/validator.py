@@ -15,14 +15,23 @@ def validate_solution(
     planning_availability: pd.DataFrame,
     staff: pd.DataFrame,
     config: HospitalConfig,
+    bed_requirements: pd.DataFrame | None = None,
 ) -> tuple[ValidationReport, pd.DataFrame]:
     """Vérifie les sorties sans réutiliser de contrainte de solveur.
+
+    Lorsque `bed_requirements` est fourni, le recensement initial, les sorties et
+    la capacité sont aussi confrontés à l'instance : le bilan interne seul serait
+    toujours vrai pour une méthode qui déduit ses sorties de ce même bilan.
 
     Le déficit de cible reste séparé des violations dures lorsque la politique
     permissive est active. La table de couverture expose ce déficit par slot.
     """
     messages: list[str] = []
     capacity_violations = _count_capacity_violations(bed_allocations)
+    admission_violations = _count_admission_violations(bed_allocations)
+    reference_violations = (
+        0 if bed_requirements is None else _count_reference_violations(bed_allocations, bed_requirements, config)
+    )
     availability_violations = _count_availability_violations(staff_assignments, planning_availability)
     qualification_violations = _count_qualification_violations(staff_assignments, staff)
     double_assignment_violations = _count_double_assignment_violations(staff_assignments)
@@ -35,6 +44,8 @@ def validate_solution(
     workload_range = _calculate_workload_range(staff_assignments, staff)
     hard_constraint_violations = (
         capacity_violations
+        + admission_violations
+        + reference_violations
         + availability_violations
         + qualification_violations
         + double_assignment_violations
@@ -45,6 +56,10 @@ def validate_solution(
     )
     if capacity_violations:
         messages.append(f"{capacity_violations} violation(s) de capacité ou de conservation.")
+    if admission_violations:
+        messages.append(f"{admission_violations} ligne(s) où les admissions acceptées sortent de la demande.")
+    if reference_violations:
+        messages.append(f"{reference_violations} ligne(s) incohérente(s) avec l'instance de référence.")
     if availability_violations:
         messages.append(f"{availability_violations} affectation(s) indisponible(s).")
     if qualification_violations:
@@ -68,6 +83,8 @@ def validate_solution(
         valid=hard_constraint_violations == 0 and not strict_failure,
         hard_constraint_violations=hard_constraint_violations,
         capacity_violations=capacity_violations,
+        admission_violations=admission_violations,
+        reference_violations=reference_violations,
         availability_violations=availability_violations,
         qualification_violations=qualification_violations,
         double_assignment_violations=double_assignment_violations,
@@ -101,6 +118,57 @@ def _count_capacity_violations(bed_allocations: pd.DataFrame) -> int:
         & (bed_allocations["occupancy_end"] <= bed_allocations["opened_beds"])
     )
     return int((~(conservation & capacity)).sum())
+
+
+def _count_admission_violations(bed_allocations: pd.DataFrame) -> int:
+    """Vérifie 0 ≤ acceptées ≤ demandées et la cohérence des refus déclarés."""
+    if {"requested_admissions", "accepted_admissions"} - set(bed_allocations):
+        return len(bed_allocations)
+    requested = bed_allocations["requested_admissions"]
+    accepted = bed_allocations["accepted_admissions"]
+    valid = (accepted >= 0) & (accepted <= requested)
+    if "rejected_admissions" in bed_allocations:
+        valid &= accepted + bed_allocations["rejected_admissions"] == requested
+    return int((~valid).sum())
+
+
+def _count_reference_violations(
+    bed_allocations: pd.DataFrame, bed_requirements: pd.DataFrame, config: HospitalConfig
+) -> int:
+    """Rejoue la dynamique de cohortes depuis l'instance et compare ligne à ligne.
+
+    Un patient refusé n'occupe pas de lit : il ne sort pas non plus après sa durée
+    de séjour. Les sorties attendues sont donc celles de l'instance, diminuées des
+    refus antérieurs d'exactement une durée de séjour.
+    """
+    allocations = bed_allocations.copy()
+    reference = bed_requirements.copy()
+    allocations["date"] = pd.to_datetime(allocations["date"])
+    reference["date"] = pd.to_datetime(reference["date"])
+    reference_by_key = reference.set_index(["service", "date"])
+    if not reference_by_key.index.is_unique or allocations.duplicated(["service", "date"]).any():
+        return len(allocations)
+    violations = len(set(reference_by_key.index) ^ set(zip(allocations["service"], allocations["date"], strict=True)))
+    for service, group in allocations.groupby("service"):
+        stay = pd.DateOffset(days=config.services[str(service)].length_of_stay_days)
+        rejected: dict[pd.Timestamp, int] = {}
+        census: int | None = None
+        for row in group.sort_values("date").itertuples(index=False):
+            if (service, row.date) not in reference_by_key.index:
+                continue
+            expected = reference_by_key.loc[(service, row.date)]
+            if census is None:
+                census = int(expected["occupancy_start"])
+            discharges = max(int(expected["expected_discharges"]) - rejected.get(row.date - stay, 0), 0)
+            consistent = (
+                int(row.occupancy_start) == census
+                and int(row.expected_discharges) == discharges
+                and int(row.capacity_available) == int(expected["capacity_available"])
+            )
+            violations += int(not consistent)
+            rejected[row.date] = int(row.requested_admissions) - int(row.accepted_admissions)
+            census = int(row.occupancy_end)
+    return violations
 
 
 def _count_availability_violations(assignments: pd.DataFrame, availability: pd.DataFrame) -> int:

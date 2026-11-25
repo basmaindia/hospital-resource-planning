@@ -38,6 +38,7 @@ class ExactInputs:
     roles: list[str]
     staff_ids: list[str]
     requested: dict[tuple[str, int], int]
+    initial_occupancy: dict[str, int]
     occupancy_required: dict[tuple[str, int], int]
     capacity: dict[tuple[str, int], int]
     staff_role: dict[str, str]
@@ -108,6 +109,7 @@ def run_milp(
         instance_metadata,
         config,
         None,
+        bed_requirements,
     )
 
 
@@ -167,6 +169,7 @@ def run_cp_sat(
         instance_metadata,
         config,
         optimality_gap,
+        bed_requirements,
     )
 
 
@@ -187,8 +190,9 @@ def save_exact_result(result: ExactResult, output_directory: Path) -> dict[str, 
     result_path = output_directory / "method_result.json"
     serialized = result.method_result.model_copy(
         update={
-            "assignments_artifact_path": paths["staff_assignments"].as_posix(),
-            "allocations_artifact_path": paths["bed_allocations"].as_posix(),
+            # Relatifs au dossier de ce method_result.json : portables et sans chemin personnel.
+            "assignments_artifact_path": paths["staff_assignments"].relative_to(output_directory).as_posix(),
+            "allocations_artifact_path": paths["bed_allocations"].relative_to(output_directory).as_posix(),
         }
     )
     result_path.write_text(serialized.model_dump_json(indent=2), encoding="utf-8")
@@ -234,6 +238,9 @@ def _build_inputs(
                 (service, index): int(demand_by_key[(service, date)])
                 for service in services
                 for index, date in enumerate(dates)
+            },
+            initial_occupancy={
+                service: int(beds_by_key.loc[(service, dates[0]), "occupancy_start"]) for service in services
             },
             occupancy_required={
                 (service, index): int(beds_by_key.loc[(service, date), "occupancy_required"])
@@ -615,13 +622,11 @@ def _extract_solution(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     records: list[dict[str, object]] = []
     for service in inputs.services:
-        previous_occupancy: int | None = None
+        # Le premier jour part du recensement initial de l'instance, pas du besoin de fin de journée.
+        occupancy_start = inputs.initial_occupancy[service]
         for date_index, date in enumerate(inputs.dates):
             accepted = value(variables["accepted"][(service, date_index)])
             occupancy = value(variables["occupancy"][(service, date_index)])
-            occupancy_start = (
-                inputs.occupancy_required[(service, date_index)] if previous_occupancy is None else previous_occupancy
-            )
             discharges = occupancy_start + accepted - occupancy
             records.append(
                 {
@@ -638,7 +643,7 @@ def _extract_solution(
                     "capacity_available": inputs.capacity[(service, date_index)],
                 }
             )
-            previous_occupancy = occupancy
+            occupancy_start = occupancy
     assignments = [
         {
             "staff_id": staff_id,
@@ -669,9 +674,12 @@ def _finalize_result(
     instance_metadata: dict[str, object],
     config: HospitalConfig,
     optimality_gap: float | None,
+    bed_requirements: pd.DataFrame,
 ) -> ExactResult:
     del started_at
-    report, coverage = validate_solution(bed_allocations, assignments, planning_availability, staff, config)
+    report, coverage = validate_solution(
+        bed_allocations, assignments, planning_availability, staff, config, bed_requirements
+    )
     instance = instance_metadata["instance"]
     return _result_from_artifacts(
         method_name,

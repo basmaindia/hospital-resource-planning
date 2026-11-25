@@ -152,6 +152,8 @@ class ValidationReport(BaseModel):
     valid: bool
     hard_constraint_violations: NonNegativeInt = 0
     capacity_violations: NonNegativeInt = 0
+    admission_violations: NonNegativeInt = 0
+    reference_violations: NonNegativeInt = 0
     availability_violations: NonNegativeInt = 0
     qualification_violations: NonNegativeInt = 0
     double_assignment_violations: NonNegativeInt = 0
