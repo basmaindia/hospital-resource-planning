@@ -104,7 +104,7 @@ Ces valeurs sont des hypothèses de démonstration. Le profil `equilibre` repren
 Conséquences à connaître, avec le profil `equilibre` :
 
 - dix lits ouverts demandent 12 postes cibles par jour. Sans personnel disponible, un lit coûte donc en moyenne 610 (10 + 1,2 × 500), moins que les 1000 d'une journée-patient refusée : accueillir reste préférable **en moyenne** ;
-- mais la cible est arrondie au-dessus. Passer de 5 à 6 lits ajoute 3 postes infirmiers (1 510 avec le lit), et passer de 10 à 11 lits ajoute 9 postes (4 510) : refuser un patient pour rester sous un palier devient avantageux. C'est l'essentiel des refus supplémentaires de CP-SAT en S0 (14 au lieu de 4) : sur les 11 services-jours où il ouvre un nombre de lits différent de Greedy, 7 se terminent sur un multiple de 5 ;
+- mais la cible est arrondie au-dessus. Passer de 5 à 6 lits ajoute 3 postes infirmiers (1 510 avec le lit), et passer de 10 à 11 lits ajoute 9 postes (4 510) : refuser un patient pour rester sous un palier devient avantageux. C'est l'essentiel des refus supplémentaires de CP-SAT en S0 (9 au lieu de 4) : sur les 9 services-jours où il ouvre un nombre de lits différent de Greedy, 6 se terminent sur un multiple de 5 ;
 - le plafond de personnel rend le déficit RH incompressible pour l'essentiel : il représente 75 à 95 % de l'objectif sur S0–S5.
 
 ## Équité
