@@ -1,9 +1,11 @@
 \chapter{Cadre Réglementaire, Normatif et Organisationnel}
 \label{ch:cadre_reglementaire}
 
-Un outil de planification hospitalière manipulerait, dans un établissement réel, des données relatives à des patients et à des professionnels. Sa mise en service ne serait donc pas seulement une question technique.
-
-Ce chapitre situe le prototype par rapport à la loi marocaine 09-08, au standard d'interopérabilité HL7 FHIR et aux normes de sécurité ISO/IEC 27001 et ISO 27799, puis décrit les utilisateurs visés et le processus de décision. Il distingue ce que le prototype fait déjà de ce qui resterait à faire ; il ne constitue pas un avis juridique.
+% ------------------------------------------------------------------------------
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+% ------------------------------------------------------------------------------
+Un outil de planification hospitalière manipulerait, dans un établissement réel, des données relatives à des patients et à des professionnels. Sa mise en service ne serait donc pas seulement une question technique. Ce chapitre situe le prototype par rapport à la loi marocaine 09-08, au standard d'interopérabilité HL7 FHIR et aux normes de sécurité ISO/IEC 27001 et ISO 27799, puis décrit les utilisateurs visés et le processus de décision hebdomadaire. Il distingue ce que le prototype fait déjà de ce qui resterait à faire ; il ne constitue pas un avis juridique.
 
 % ------------------------------------------------------------------------------
 \section{Cadre Réglementaire : Loi 09-08 et CNDP}
@@ -147,7 +149,7 @@ L'outil ne décide pas d'une prise en charge. Un « refus » du modèle signifie
 Trois situations dégradées sont prévues et mesurées au chapitre~\ref{ch:tests_validation_resultats} : saturation ($S_2$, $S_4$), absences ($S_3$, $S_4$) et fermeture de lits ($S_5$). Côté logiciel, si un solveur ne trouve pas de solution dans son budget, son statut est \texttt{UNKNOWN} et aucun indicateur n'est affiché ; si l'API ne répond pas, le tableau de bord le signale au lieu d'afficher des valeurs anciennes. Les méthodes Naïve et Greedy servent alors de repli immédiat.
 
 % ------------------------------------------------------------------------------
-\section*{Conclusion du Chapitre}
-\addcontentsline{toc}{section}{Conclusion du Chapitre}
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
 % ------------------------------------------------------------------------------
-Les données synthétiques permettent de développer et d'évaluer l'outil sans traiter de donnée personnelle. Un usage réel demanderait une démarche auprès de la CNDP, une interopérabilité avec le SIH, pour laquelle une correspondance FHIR est proposée, et des mesures de sécurité que le prototype n'a pas, en premier lieu l'authentification. L'organisation proposée garde la décision aux professionnels. Le chapitre suivant présente les choix techniques.
+Les données synthétiques permettent de développer et d'évaluer l'outil sans traiter de donnée personnelle. Un usage réel demanderait une démarche auprès de la CNDP, une interopérabilité avec le système d'information hospitalier, pour laquelle une correspondance FHIR est proposée, et des mesures de sécurité que le prototype n'a pas, en premier lieu l'authentification. L'organisation proposée, non encore testée, associe quatre rôles à un processus hebdomadaire et laisse la décision aux professionnels. Ce cadre étant posé, le chapitre suivant présente les méthodes et les outils techniques retenus.

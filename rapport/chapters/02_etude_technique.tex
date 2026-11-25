@@ -1,9 +1,11 @@
 \chapter{Étude Technique et Choix Technologiques}
 \label{ch:etude_technique}
 
-La conception d'un système d'aide à la décision pour la planification hospitalière assemble plusieurs briques : modèles de prévision, méthodes d'optimisation, service web et interface de visualisation.
-
-Ce chapitre présente les méthodes et les outils retenus, les raisons de ces choix et un tableau de synthèse. Les solutions non retenues sont citées comme alternatives ; elles n'ont pas fait l'objet de mesures comparatives dans le projet.
+% ------------------------------------------------------------------------------
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+% ------------------------------------------------------------------------------
+La conception d'un système d'aide à la décision pour la planification hospitalière assemble plusieurs briques : modèles de prévision, méthodes d'optimisation, service web et interface de visualisation. Ce chapitre présente les quatre méthodes de planification et les cinq modèles de prévision comparés, puis les outils logiciels retenus pour l'API, le tableau de bord et les tests. Il explique les raisons de ces choix et les résume dans un tableau de synthèse. Les solutions non retenues sont citées comme alternatives ; elles n'ont pas fait l'objet de mesures comparatives dans le projet.
 
 % ------------------------------------------------------------------------------
 \section{Étude et Choix des Outils et Technologies}
@@ -119,7 +121,7 @@ Le tableau~\ref{tab:synthese_techno} récapitule les choix, avec les versions in
 \end{table}
 
 % ------------------------------------------------------------------------------
-\section*{Conclusion du Chapitre}
-\addcontentsline{toc}{section}{Conclusion du Chapitre}
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
 % ------------------------------------------------------------------------------
-Les outils retenus sont libres et s'exécutent sur un poste de travail. Deux heuristiques déterministes donnent une réponse immédiate, deux solveurs la complètent dans un budget de temps fixé, et l'ensemble est servi par une API typée et un tableau de bord Next.js. Le chapitre suivant formalise le problème que ces méthodes résolvent.
+Les outils retenus sont libres et s'exécutent sur un poste de travail. Deux heuristiques déterministes donnent une réponse immédiate ; deux solveurs les complètent dans un budget de temps fixé, sans garantie d'atteindre l'optimum dans ce délai. Les prévisions reposent sur des modèles simples et explicables, et l'ensemble est servi par une API typée et un tableau de bord Next.js, sans base de données. Ces choix étant fixés, le chapitre suivant formalise le problème que les méthodes doivent résoudre et décrit la conception du système.

@@ -1,9 +1,11 @@
 \chapter{Tests, Validation et Analyse des Résultats}
 \label{ch:tests_validation_resultats}
 
-La valeur d'un outil d'aide à la décision dépend de la confiance que l'on peut accorder à ses résultats, et de la clarté avec laquelle il en montre les limites.
-
-Ce chapitre présente les tests, la validation des prévisions, la comparaison des quatre méthodes sur six scénarios et trois profils, l'arbitrage entre accueil et personnel, l'analyse de sensibilité, puis les limites. Tous les tableaux de résultats sont générés depuis le dossier \texttt{results/}.
+% ------------------------------------------------------------------------------
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+% ------------------------------------------------------------------------------
+La valeur d'un outil d'aide à la décision dépend de la confiance que l'on peut accorder à ses résultats, et de la clarté avec laquelle il en montre les limites. Ce chapitre présente le protocole et les tests, la validation des prévisions, puis la comparaison des quatre méthodes sur six scénarios et trois profils. Il analyse ensuite l'arbitrage entre accueil et personnel et la sensibilité aux absences, à la demande et aux fermetures de lits, avant de discuter les limites. Tous les tableaux de résultats sont générés depuis le dossier \texttt{results/}.
 
 % ------------------------------------------------------------------------------
 \section{Protocole de Validation et Tests}
@@ -183,7 +185,7 @@ Le prototype relie prévision, lits et personnel dans un même modèle ; compare
 \end{itemize}
 
 % ------------------------------------------------------------------------------
-\section*{Conclusion du Chapitre}
-\addcontentsline{toc}{section}{Conclusion du Chapitre}
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
 % ------------------------------------------------------------------------------
-Les \NbTestsPython{} tests Python et les \NbTestsNavigateur{} parcours de navigateur encadrent le prototype, et les 72 plans respectent les contraintes dures. CP-SAT est la méthode la plus régulière, MILP l'égale avec la priorité accueil, et Greedy fournit une bonne réponse immédiate. Surtout, les résultats montrent que le profil choisi déplace l'effort entre les patients et le personnel, dans un hôpital dont l'effectif ne couvre qu'environ la moitié de sa cible.
+Les \NbTestsPython{} tests Python et les \NbTestsNavigateur{} parcours de navigateur encadrent le prototype, et les 72 plans respectent les contraintes dures. CP-SAT est la méthode la plus régulière, MILP l'égale avec la priorité accueil, et Greedy fournit une bonne réponse immédiate. Surtout, les résultats montrent que le profil choisi déplace l'effort entre les patients et le personnel, dans un hôpital dont l'effectif ne couvre qu'environ la moitié de sa cible. Les limites recensées fixent la portée de ces résultats. La conclusion générale en tire les enseignements et les perspectives du projet.

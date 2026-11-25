@@ -1,9 +1,11 @@
 \chapter{Réalisation et Implémentation}
 \label{ch:realisation_implementation}
 
-La réalisation traduit le modèle du chapitre précédent en un logiciel modulaire, testé et utilisable depuis un navigateur.
-
-Ce chapitre décrit l'organisation du code, l'implémentation des données, des prévisions, des quatre méthodes et du validateur, puis l'API FastAPI et les principales vues du tableau de bord, dont l'allocation, le simulateur et la sensibilité.
+% ------------------------------------------------------------------------------
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+% ------------------------------------------------------------------------------
+La réalisation traduit le modèle du chapitre précédent en un logiciel modulaire, testé et utilisable depuis un navigateur. Ce chapitre décrit d'abord l'organisation du code, puis l'implémentation des données, des prévisions, des quatre méthodes, du validateur et des expériences. Il présente ensuite l'API FastAPI, avec ses points d'accès, sa file de calcul et ses contrôles, et les principales vues du tableau de bord, dont l'allocation, le simulateur et la sensibilité. Les extraits de code et les captures proviennent du projet.
 
 % ------------------------------------------------------------------------------
 \section{Environnement de Développement et Organisation du Projet}
@@ -233,7 +235,7 @@ Deux protections ont été ajoutées :
 La vue Sensibilité lit la grille de \NbCas{} cas : filtres, courbes des postes couverts selon les absences, courbes de coût selon la demande, carte de chaleur absences $\times$ demande et comparaison de Naïve et Greedy (figure~\ref{fig:sensibilite}). Elle ne lance aucun calcul.
 
 % ------------------------------------------------------------------------------
-\section*{Conclusion du Chapitre}
-\addcontentsline{toc}{section}{Conclusion du Chapitre}
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
 % ------------------------------------------------------------------------------
-Le prototype couvre toute la chaîne, des données au tableau de bord. Les points délicats ont porté sur l'interprétation honnête des solveurs (statut, borne, reprise), sur un contrôle indépendant des plans et sur un affichage qui distingue contraintes respectées et postes couverts. Le chapitre suivant présente les tests et les résultats.
+Le prototype couvre toute la chaîne, des données au tableau de bord : génération, prévision, quatre méthodes, validateur, API de \NbEndpoints{} points d'accès et interface de dix vues. Les points délicats ont porté sur l'interprétation honnête des solveurs (statut, borne, reprise), sur un contrôle indépendant des plans et sur un affichage qui distingue contraintes respectées et postes couverts. Le simulateur permet enfin d'étudier une situation particulière sans la mêler aux scénarios de référence. Le chapitre suivant présente les tests et les résultats obtenus avec ce prototype.

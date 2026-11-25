@@ -1,9 +1,11 @@
 \chapter{Analyse et Conception du Système}
 \label{ch:conception_systeme}
 
-Planifier ensemble les lits et le personnel demande un modèle précis : ce que l'on décide, ce que l'on interdit et ce que l'on accepte de dégrader.
-
-Ce chapitre décrit l'architecture du système, la dynamique des patients, les contraintes de personnel, la fonction objectif et ses trois profils, puis la conception des quatre méthodes, du validateur indépendant, des scénarios et de l'interface. La formulation est celle du code ; sa version de référence est le document \texttt{docs/mathematical\_model.md}.
+% ------------------------------------------------------------------------------
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+% ------------------------------------------------------------------------------
+Planifier ensemble les lits et le personnel demande un modèle précis : ce que l'on décide, ce que l'on interdit et ce que l'on accepte de dégrader. Ce chapitre décrit l'architecture du système, la dynamique des patients et les contraintes de personnel, puis la fonction objectif et ses trois profils de pondération. Il présente ensuite la conception des quatre méthodes, du validateur indépendant, des scénarios et de l'interface. La formulation est celle du code ; sa version de référence est le document \texttt{docs/mathematical\_model.md}.
 
 % ------------------------------------------------------------------------------
 \section{Architecture Générale du Système}
@@ -254,7 +256,7 @@ Le tableau de bord comporte \textbf{dix vues}, accessibles par une barre latéra
 Deux règles guident l'affichage : aucune vue ne lance de calcul à son ouverture, et une valeur absente donne un état vide explicite.
 
 % ------------------------------------------------------------------------------
-\section*{Conclusion du Chapitre}
-\addcontentsline{toc}{section}{Conclusion du Chapitre}
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
 % ------------------------------------------------------------------------------
-Ce chapitre a fixé le modèle : cohortes de patients, lits, dotation minimale dure, cible de personnel assouplie par un déficit, règles individuelles et objectif pondéré selon trois profils. Le validateur est séparé des méthodes et les deux notions de contraintes respectées et de postes couverts ne sont pas confondues. Le chapitre suivant décrit leur mise en œuvre.
+Ce chapitre a fixé le modèle : cohortes de patients, capacité en lits, dotation minimale dure, cible de personnel assouplie par un déficit, règles individuelles et objectif pondéré selon trois profils. Il a aussi mis en évidence l'effet de palier, qui peut rendre un refus avantageux pour l'objectif. Le validateur est séparé des méthodes, et deux notions ne sont jamais confondues : le respect des contraintes et la couverture des postes cibles. Le chapitre suivant décrit la mise en œuvre de cette conception, des données jusqu'au tableau de bord.
