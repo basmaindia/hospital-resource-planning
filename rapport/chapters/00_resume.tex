@@ -1,7 +1,7 @@
 \chapter*{Résumé}
 \addcontentsline{toc}{chapter}{Résumé}
 
-La gestion des lits et du personnel d'un hôpital est un problème décisionnel difficile : les admissions sont incertaines, les règles de travail sont nombreuses et les services dépendent les uns des autres. Ce projet présente la conception, l'implémentation et l'évaluation d'un outil d'aide à la décision reproductible pour un hôpital synthétique de \textbf{\NbLits{} lits répartis sur quatre services (Urgences, Médecine, Réanimation, Chirurgie)} et \NbAgents{} professionnels, sur un horizon de \textbf{7 jours ($J+1$ à $J+7$)}. Aucune donnée patient réelle n'est utilisée.
+La gestion des lits et du personnel d'un hôpital est un problème décisionnel difficile : les admissions sont incertaines, les règles de travail sont nombreuses et les services dépendent les uns des autres. Réalisé dans le cadre du module \textbf{Santé digitale et ingénierie des systèmes de santé}, ce projet présente la conception, l'implémentation et l'évaluation d'un outil d'aide à la décision reproductible pour un hôpital synthétique de \textbf{\NbLits{} lits répartis sur quatre services (Urgences, Médecine, Réanimation, Chirurgie)} et \NbAgents{} professionnels, sur un horizon de \textbf{7 jours ($J+1$ à $J+7$)}. Aucune donnée patient réelle n'est utilisée.
 
 La chaîne de traitement comprend :
 \begin{enumerate}
@@ -24,7 +24,7 @@ Les 72 plans respectent toutes les contraintes dures. CP-SAT est la meilleure m�
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
 
-Planning hospital beds and staff is a difficult decision problem: admissions are uncertain, working rules are numerous and wards depend on one another. This project presents the design, implementation and evaluation of a reproducible decision-support tool for a synthetic hospital with \NbLits{} beds across four departments (Emergency, Medicine, Intensive Care, Surgery) and \NbAgents{} professionals, over a 7-day horizon ($D+1$ to $D+7$). No real patient data is used.
+Planning hospital beds and staff is a difficult decision problem: admissions are uncertain, working rules are numerous and wards depend on one another. Carried out within the \textit{Santé digitale et ingénierie des systèmes de santé} module (digital health and health systems engineering), this project presents the design, implementation and evaluation of a reproducible decision-support tool for a synthetic hospital with \NbLits{} beds across four departments (Emergency, Medicine, Intensive Care, Surgery) and \NbAgents{} professionals, over a 7-day horizon ($D+1$ to $D+7$). No real patient data is used.
 
 The pipeline includes synthetic data covering \NbJours{} days; five forecasting models with chronological validation (validation WAPE of \WapeValUrg{} for Emergency with the selected lagged regression); a single formulation of bed opening and individual staff assignment with an \ReposMin{}-hour minimum rest, at most \PostesMax{} shifts per week and minimum staffing; four methods (naive strategy, greedy heuristic, MILP/CBC, CP-SAT) and three weighting profiles (balanced, admission priority, staff priority), that is 72 plans checked by an independent validator; six scenarios and an \NbCas{}-case sensitivity grid; a FastAPI service and a ten-view Next.js dashboard with a custom scenario simulator; and a regulatory, normative and organisational framework (Moroccan law 09-08, HL7 FHIR, ISO/IEC 27001 and ISO 27799).
 

@@ -1,0 +1,57 @@
+% ==================================================
+% PAGE DES MOTS-CLÉS
+% ==================================================
+\chapter*{Liste des mots-clés}
+\addcontentsline{toc}{chapter}{Liste des mots-clés}
+
+Cette page définit les principaux termes techniques employés dans le rapport, classés par ordre alphabétique.
+
+\begingroup
+\small
+\renewcommand{\arraystretch}{1.25}
+\begin{longtable}{>{\raggedright\arraybackslash}p{3.6cm} >{\raggedright\arraybackslash}p{11.4cm}}
+\toprule
+\textbf{Mot-clé} & \textbf{Définition} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Mot-clé} & \textbf{Définition} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+Analyse de sensibilité & Étude de l'évolution des résultats lorsque les absences, la demande et les fermetures de lits varient ; ici une grille de \NbCas{} cas. \\
+API REST & Interface par laquelle le tableau de bord demande au moteur de calcul des données ou l'exécution d'un calcul. \\
+Borne inférieure & Valeur en dessous de laquelle aucun plan ne peut faire descendre l'objectif ; elle sert à calculer le gap d'optimalité. \\
+Cohorte & Groupe de patients admis le même jour dans un service, suivi jusqu'à sa sortie. \\
+Contrainte dure & Règle qu'un plan doit toujours respecter : capacité en lits, qualification, repos, dotation minimale, etc. \\
+Couverture de la demande & Part de l'occupation demandée que le plan soutient ; elle mesure l'accueil des patients, pas le personnel. \\
+CP-SAT & \textit{Constraint Programming -- Satisfiability} : solveur par contraintes de Google OR-Tools. \\
+Déficit RH & Nombre de postes cibles non couverts sur l'horizon. \\
+Données synthétiques & Données produites par un générateur à partir de paramètres et d'une graine, sans personne réelle. \\
+Dotation minimale & Effectif minimal, par rôle et par poste, d'un service ouvert ; c'est une contrainte dure. \\
+Effet de palier & Saut du nombre de postes cibles lorsqu'un lit supplémentaire fait franchir un seuil, la cible étant entière. \\
+Équité & Somme, par rôle, de l'écart entre la charge la plus forte et la charge la plus faible des agents présents. \\
+Gap d'optimalité & Écart relatif entre l'objectif d'une solution et la meilleure borne connue : (objectif $-$ borne) / objectif. \\
+Graine aléatoire & Nombre qui fixe les tirages aléatoires, afin de reproduire les données ou un scénario. \\
+Greedy & Heuristique gloutonne : elle prend les décisions l'une après l'autre, sans les remettre en cause ; référence de la comparaison. \\
+Heuristique & Méthode de calcul rapide qui fournit une solution sans garantie d'optimalité. \\
+HL7 FHIR & Standard d'échange de données de santé fondé sur des ressources (lieu, séjour, professionnel, planning, etc.). \\
+Horizon & Période planifiée ; ici sept jours, de $J+1$ à $J+7$. \\
+Instance opérationnelle & Ensemble des entrées communes à toutes les méthodes : admissions demandées, occupation, capacité et cibles de personnel. \\
+Job & Calcul soumis à l'API et exécuté en arrière-plan, dont l'état peut être consulté. \\
+MILP & \textit{Mixed-Integer Linear Programming} : programmation linéaire en nombres entiers ; résolue ici par CBC. \\
+Postes cibles couverts & Part des postes cibles réellement pourvus ; indicateur affiché à côté du respect des contraintes. \\
+Profil de pondération & Jeu de poids de l'objectif traduisant une priorité : équilibré, priorité accueil ou priorité personnel. \\
+Régression à retards & Modèle de prévision utilisant les valeurs passées, leurs moyennes et le calendrier. \\
+Scénario de stress & Situation modifiant l'instance de référence (pic de demande, absences, fermeture de lits) afin d'éprouver un plan. \\
+Simulateur & Vue du tableau de bord qui calcule un scénario personnalisé et le compare à $S_0$. \\
+Solution réalisable & Plan qui respecte toutes les contraintes dures, sans être nécessairement optimal. \\
+Stratégie naïve & Partage proportionnel des lits et du personnel, sans service prioritaire ; point de comparaison bas. \\
+Validateur & Module indépendant qui recalcule les règles à partir du plan produit et compte les violations. \\
+Validation chronologique & Évaluation d'une prévision où seules les données antérieures à la date de prévision sont utilisées. \\
+Vivier & Groupe d'agents pouvant travailler dans les mêmes services ; ici \{URG, CHI\} et \{REA, MED\}. \\
+WAPE & \textit{Weighted Absolute Percentage Error} : somme des erreurs absolues divisée par la somme des valeurs observées. \\
+Warm start & Solution de départ fournie à un solveur. CP-SAT reçoit le plan Greedy comme simple indication (\textit{hint}) ; CBC n'en reçoit aucune. \\
+\end{longtable}
+\endgroup

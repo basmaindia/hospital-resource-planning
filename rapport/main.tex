@@ -8,7 +8,7 @@
 \usepackage{lmodern} % Police vectorielle Latin Modern
 \usepackage[french]{babel}
 \usepackage{geometry}
-\geometry{top=2.4cm,bottom=2.4cm,left=2.6cm,right=2.4cm}
+\geometry{top=2.4cm,bottom=2.4cm,left=2.6cm,right=2.4cm,headheight=28pt,headsep=14pt}
 \usepackage{setspace}
 \setstretch{1.13}
 
@@ -80,7 +80,8 @@
 % ==============================================================================
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\small\color{gray}Planification Prédictive des Ressources Hospitalières}
+\fancyhead[L]{\small\color{gray}Planification Prédictive des Ressources Hospitalières\\
+    \footnotesize Module : Santé digitale et ingénierie des systèmes de santé}
 \fancyhead[R]{\small\color{gray}ENSAM Rabat -- INDIA}
 \fancyfoot[C]{\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
@@ -193,6 +194,9 @@
 
 \clearpage
 \input{chapters/00_resume}
+
+\clearpage
+\input{chapters/00_mots_cles}
 
 \clearpage
 \tableofcontents
