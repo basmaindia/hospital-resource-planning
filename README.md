@@ -189,4 +189,4 @@ npm.cmd run build
 npm.cmd run test
 ```
 
-Documentation complémentaire : [modèle mathématique](docs/mathematical_model.md), [données](docs/synthetic_data.md), [prévisions](docs/forecasting.md), [optimisation](docs/exact_solvers.md), [scénarios](docs/experiments.md), [API](docs/api_contract.md), [dashboard](docs/dashboard.md), [dictionnaire de données](docs/data_dictionary.md) et [état du projet](PROGRESS.md).
+Documentation complémentaire : [modèle mathématique](docs/mathematical_model.md), [données](docs/synthetic_data.md), [prévisions](docs/forecasting.md), [optimisation](docs/exact_solvers.md), [scénarios](docs/experiments.md), [API](docs/api_contract.md), [dashboard](docs/dashboard.md), [recalibrage proposé des effectifs](docs/staffing_calibration.md), [dictionnaire de données](docs/data_dictionary.md) et [état du projet](PROGRESS.md).

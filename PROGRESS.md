@@ -180,7 +180,7 @@ Un audit a montré que les premiers résultats de la version 2 étaient biaisés
 Graine 42, 50 s et 8 threads par solveur exact, environ 106 s par scénario et par profil (32 min pour les 72 résultats). Naïve et Greedy prennent environ 1 s au plus. Le premier passage a été perturbé par la mise en veille du PC : les 9 expériences sur 18 qui chevauchaient une veille ont été relancées sans interruption, et le journal Windows vérifié. CBC a été relancé automatiquement avec la graine 43 sur S4 priorité personnel (assertion interne avec la graine 42). Empêcher la veille pendant un recalcul : les solveurs sont limités en temps réel.
 
 ### Pistes restantes pour le groupe
-1. Ajouter CP-SAT sur un sous-ensemble de l'analyse de sensibilité (80 cas calculés en Naïve et Greedy).
+1. Décider du recalibrage des effectifs (docs/staffing_calibration.md, non appliqué), puis ajouter CP-SAT sur le sous-ensemble de sensibilité proposé.
 2. Volets normatif et réglementaire (loi 09-08, confidentialité, traçabilité) à documenter explicitement.
 3. Mesurer un score d'utilisabilité (SUS) du dashboard auprès de quelques utilisateurs.
 4. Compte rendu technique et répartition de la démo entre les 6 membres.
