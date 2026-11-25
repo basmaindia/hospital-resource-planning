@@ -3,7 +3,7 @@
   "scenario_id": "S1_URGENT_PEAK",
   "method_name": "greedy",
   "status": "FEASIBLE",
-  "runtime_seconds": 0.145943,
+  "runtime_seconds": 0.444163,
   "objective_value": 695559.0,
   "objective_components": {
     "opened_bed_cost": 18550.0,
@@ -12,7 +12,10 @@
     "workload_imbalance_cost": 9.0,
     "total_cost": 695559.0
   },
+  "best_bound": null,
   "optimality_gap": null,
+  "solver_time_limit_seconds": null,
+  "solver_num_workers": null,
   "unmet_demand_patient_days": 68,
   "rejected_admissions": 29,
   "staff_shortage_total": 1218,
@@ -25,6 +28,8 @@
     "valid": true,
     "hard_constraint_violations": 0,
     "capacity_violations": 0,
+    "admission_violations": 0,
+    "reference_violations": 0,
     "availability_violations": 0,
     "qualification_violations": 0,
     "double_assignment_violations": 0,
@@ -34,8 +39,8 @@
       "Déficit cumulé de cible de personnel : 1218 poste(s)."
     ]
   },
-  "assignments_artifact_path": "results/experiments/experiment-s1_urgent_peak-c2b5809425d4/greedy/staff_assignments.csv",
-  "allocations_artifact_path": "results/experiments/experiment-s1_urgent_peak-c2b5809425d4/greedy/bed_allocations.csv",
+  "assignments_artifact_path": "staff_assignments.csv",
+  "allocations_artifact_path": "bed_allocations.csv",
   "native_status": "GREEDY_COMPLETE",
   "error_message": null
 }

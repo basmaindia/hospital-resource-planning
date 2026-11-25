@@ -1,8 +1,8 @@
 date,service,occupancy_start,expected_discharges,requested_admissions,occupancy_required,accepted_admissions,rejected_admissions,occupancy_end,opened_beds,capacity_available
-2025-12-31,CHI,57,19,19,57,19,0,57,57,64
+2025-12-31,CHI,41,3,19,57,19,0,57,57,64
 2025-12-31,MED,113,25,25,113,18,7,106,106,106
 2025-12-31,REA,43,8,8,43,8,0,43,43,55
-2025-12-31,URG,72,42,42,72,42,0,72,72,75
+2025-12-31,URG,57,27,42,72,42,0,72,72,75
 2026-01-01,CHI,57,5,23,75,12,11,64,64,64
 2026-01-01,MED,106,19,23,117,19,4,106,106,106
 2026-01-01,REA,43,4,8,47,8,0,47,47,55

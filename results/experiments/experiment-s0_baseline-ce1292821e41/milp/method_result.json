@@ -3,39 +3,44 @@
   "scenario_id": "S0_BASELINE",
   "method_name": "milp",
   "status": "FEASIBLE",
-  "runtime_seconds": 30.937297090000015,
-  "objective_value": 636379.0,
+  "runtime_seconds": 52.94051820016466,
+  "objective_value": 609870.0,
   "objective_components": {
     "opened_bed_cost": 18370.0,
     "unmet_patient_day_cost": 18000.0,
-    "staff_target_shortage_cost": 600000.0,
-    "workload_imbalance_cost": 9.0,
-    "total_cost": 636379.0
+    "staff_target_shortage_cost": 573500.0,
+    "workload_imbalance_cost": 0.0,
+    "total_cost": 609870.0
   },
-  "optimality_gap": null,
+  "best_bound": 593683.2,
+  "optimality_gap": 0.02654139406758825,
+  "solver_time_limit_seconds": 50,
+  "solver_num_workers": 8,
   "unmet_demand_patient_days": 18,
   "rejected_admissions": 4,
-  "staff_shortage_total": 1200,
+  "staff_shortage_total": 1147,
   "coverage_rate": 0.9902964959568733,
   "beds_opened_total": 1837,
-  "fairness_metric": 9.0,
+  "fairness_metric": 0.0,
   "seed": 42,
   "config_hash": "1b87b2b31569f5c5b276e606ae5c85976bb5bd275d5233a93f7518f886d35b5c",
   "validation": {
     "valid": true,
     "hard_constraint_violations": 0,
     "capacity_violations": 0,
+    "admission_violations": 0,
+    "reference_violations": 0,
     "availability_violations": 0,
     "qualification_violations": 0,
     "double_assignment_violations": 0,
-    "coverage_deficits": 1200,
-    "workload_range": 9,
+    "coverage_deficits": 1147,
+    "workload_range": 0,
     "messages": [
-      "Déficit cumulé de cible de personnel : 1200 poste(s)."
+      "Déficit cumulé de cible de personnel : 1147 poste(s)."
     ]
   },
-  "assignments_artifact_path": "results/experiments/experiment-s0_baseline-ce1292821e41/milp/staff_assignments.csv",
-  "allocations_artifact_path": "results/experiments/experiment-s0_baseline-ce1292821e41/milp/bed_allocations.csv",
+  "assignments_artifact_path": "staff_assignments.csv",
+  "allocations_artifact_path": "bed_allocations.csv",
   "native_status": "TimeLimit",
   "error_message": null
 }

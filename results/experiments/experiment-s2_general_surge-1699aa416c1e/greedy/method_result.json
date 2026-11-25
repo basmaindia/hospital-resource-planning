@@ -3,7 +3,7 @@
   "scenario_id": "S2_GENERAL_SURGE",
   "method_name": "greedy",
   "status": "FEASIBLE",
-  "runtime_seconds": 0.145663,
+  "runtime_seconds": 0.412734,
   "objective_value": 924327.0,
   "objective_components": {
     "opened_bed_cost": 20320.0,
@@ -12,7 +12,10 @@
     "workload_imbalance_cost": 7.0,
     "total_cost": 924327.0
   },
+  "best_bound": null,
   "optimality_gap": null,
+  "solver_time_limit_seconds": null,
+  "solver_num_workers": null,
   "unmet_demand_patient_days": 200,
   "rejected_admissions": 73,
   "staff_shortage_total": 1408,
@@ -25,6 +28,8 @@
     "valid": true,
     "hard_constraint_violations": 0,
     "capacity_violations": 0,
+    "admission_violations": 0,
+    "reference_violations": 0,
     "availability_violations": 0,
     "qualification_violations": 0,
     "double_assignment_violations": 0,
@@ -34,8 +39,8 @@
       "Déficit cumulé de cible de personnel : 1408 poste(s)."
     ]
   },
-  "assignments_artifact_path": "results/experiments/experiment-s2_general_surge-1699aa416c1e/greedy/staff_assignments.csv",
-  "allocations_artifact_path": "results/experiments/experiment-s2_general_surge-1699aa416c1e/greedy/bed_allocations.csv",
+  "assignments_artifact_path": "staff_assignments.csv",
+  "allocations_artifact_path": "bed_allocations.csv",
   "native_status": "GREEDY_COMPLETE",
   "error_message": null
 }

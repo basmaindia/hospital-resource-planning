@@ -9,7 +9,7 @@ Les exigences de référence sont dans [specifications.md](specifications.md). L
 - Données synthétiques reproductibles pour URG, MED, REA et CHI.
 - Prévisions J+1 à J+7 avec cinq modèles et validation chronologique.
 - Instance commune de besoins opérationnels, puis Greedy, MILP/CBC et CP-SAT avec validateur indépendant.
-- Scénarios S0 à S5, expériences persistées, API FastAPI et dashboard à huit vues.
+- Scénarios S0 à S5, expériences persistées, API FastAPI et dashboard à neuf vues.
 
 Les allocations et comparaisons ne sont affichées que lorsqu’elles ont été effectivement générées et persistées.
 
@@ -101,7 +101,7 @@ $env:PYTHONPATH = "src"
 .\.venv\Scripts\python.exe -m hospital_planning.experiments.runner
 ```
 
-La commande crée les expériences Greedy S0–S5 dans `results/experiments/`. Ajouter `--methods greedy milp cp_sat` pour comparer les trois méthodes sur les mêmes instances. Le manifeste de sensibilité à 80 scénarios s'obtient avec `--sensitivity-manifest`. Voir [docs/experiments.md](docs/experiments.md).
+La commande crée les expériences Greedy S0–S5 dans `results/experiments/`. Ajouter `--methods greedy milp cp_sat` pour comparer les trois méthodes sur les mêmes instances (≈ 107 s par scénario, ≈ 11 min au total). Le budget par solveur exact, 50 s et 8 threads par défaut, se règle dans `configs/hospital.json` ou avec `--time-limit` et `--workers`. Le manifeste de sensibilité à 80 scénarios s'obtient avec `--sensitivity-manifest`. Voir [docs/experiments.md](docs/experiments.md).
 
 ## Démarrer l'API locale
 
@@ -129,12 +129,26 @@ npm.cmd run dev
 
 Le dashboard est disponible sur `http://localhost:3011`. Après clonage et installation, ses vues lisent les artefacts fournis sans exécuter le pipeline. La vue Expériences peut soumettre explicitement un nouveau calcul après clic utilisateur. Copier éventuellement `frontend/.env.example` vers `frontend/.env.local` pour expliciter l'URL API locale. Consulter [docs/dashboard.md](docs/dashboard.md) pour la connexion API et les limites.
 
+## Résultats de référence
+
+Objectif canonique, plus bas = meilleur (graine 42, 50 s et 8 threads par solveur exact). Détail et lecture dans [PROGRESS.md](PROGRESS.md).
+
+| Scénario | Greedy | MILP/CBC | CP-SAT | Meilleur vs Greedy |
+|---|---:|---:|---:|---:|
+| S0 nominal | 636 379 | 609 870 | 605 190 | -4,9 % (CP-SAT) |
+| S1 pic URG | 695 559 | 666 041 | 664 490 | -4,5 % (CP-SAT) |
+| S2 hausse +25 % | 924 327 | 903 320 | 899 240 | -2,7 % (CP-SAT) |
+| S3 absences 15 % | 712 885 | 696 865 | 690 635 | -3,1 % (CP-SAT) |
+| S4 crise combinée | 1 002 335 | 984 655 | 987 235 | -1,8 % (MILP/CBC) |
+| S5 fermeture 10 % lits | 674 469 | 650 444 | 644 400 | -4,5 % (CP-SAT) |
+
 ## Limites
 
 - Les données, ratios, scénarios et résultats sont synthétiques.
-- Les expériences fournies couvrent S0–S5, avec une méthode référencée par expérience ; elles ne démontrent pas une comparaison complète des trois solveurs sur une même instance.
+- Les expériences fournies couvrent S0–S5 avec les trois méthodes sur la même instance (18 résultats valides, aucun prouvé optimal). MILP et CP-SAT, parallèles et limités à 50 s, peuvent varier légèrement d'une exécution à l'autre.
+- Le déficit de personnel représente 75 à 95 % de l'objectif : un meilleur objectif peut s'accompagner de davantage d'admissions refusées.
 - Les solveurs exacts et la sensibilité exhaustive peuvent être coûteux et ne sont jamais lancés automatiquement.
-- Le build Next.js et les tests Playwright doivent être confirmés sur un poste local autorisant les sockets.
+- Le test Playwright nécessite un navigateur installé et ne contrôle pas les données affichées.
 
 ## Vérification et documentation
 

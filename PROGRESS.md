@@ -24,15 +24,15 @@ Dernière synthèse : novembre 2026. Ce fichier décrit l’état observable du 
 - Greedy, MILP/CBC et CP-SAT avec objectif canonique et validateur indépendant.
 - Scénarios S0–S5, résultats d’expériences et manifeste de sensibilité de 80 combinaisons.
 - API FastAPI sur le port 8000 : lectures, jobs explicitement soumis et téléchargements contrôlés.
-- Dashboard sur le port 3011 : huit vues, filtres, consultation des résultats et lancement manuel d’une méthode.
+- Dashboard sur le port 3011 : neuf vues, filtres, consultation des résultats et lancement manuel d’une méthode.
 
 ## Résultats et validations confirmés
 
-- Les données et résultats du projet sont synthétiques et reproductibles pour une configuration et une graine identiques.
+- Les données et Greedy sont reproductibles pour une configuration et une graine identiques. MILP et CP-SAT, parallèles et limités en temps, peuvent varier légèrement d'une exécution à l'autre.
 - La validation de prévision réserve le test final ; il n’intervient pas dans la sélection des modèles.
 - Les trois méthodes utilisent les mêmes conventions d’unités et les mêmes composantes d’objectif.
 - Les admissions refusées sont un KPI en patients ; la pénalité de demande est portée une seule fois par les journées-patients non soutenues.
-- Les tests récents confirmés sont `pytest tests/test_api_contract.py -q` (8 tests), `ruff check src tests`, `npm.cmd run typecheck` et `npm.cmd run lint`.
+- Contrôles confirmés le 25 novembre 2026 : `pytest -q` (58 tests), `ruff check src tests`, `npm.cmd run typecheck` et `npm.cmd run lint`. `npm.cmd run build` et Playwright (avec Edge) ont réussi lors de l'audit, avant ces corrections.
 
 ## Jeu de démonstration pour GitHub
 
@@ -51,32 +51,65 @@ Corrections rendant le prototype fonctionnel de bout en bout :
 - **Nouvelle vue « Comparaison scénarios »** (+ endpoint `/api/v1/dashboard/scenario-comparison`) : graphique groupé scénario × méthode sur 8 indicateurs, tableau avec écart vs S0, meilleure méthode par scénario.
 - Lancement « Les 3 méthodes » par défaut depuis la vue Expériences ; `.gitignore` générique pour les expériences ; avertissements ESLint corrigés ; 3 tests de non-régression (`tests/test_portability.py`). 39/39 tests, ruff, typecheck, lint et `next build` OK.
 
+## Mise à jour — correction des résultats (25 novembre 2026)
+
+Un audit a montré que les premiers résultats de la version 2 étaient biaisés : MILP et CP-SAT (1 thread, 30 s, départ sur Greedy) rendaient les affectations de Greedy. Ils sont remplacés par ceux ci-dessous.
+
+- **Solveurs** : CP-SAT sur 8 threads ; MILP/CBC sans warm start, avec borne et gap ; `OPTIMAL` seulement si la recherche est terminée. Budget configurable, commun aux deux : 50 s et 8 threads, soit ≈ 107 s par scénario (2 min maximum).
+- **Occupation du jour 1** : MILP et CP-SAT enregistraient le besoin de fin de journée au lieu du recensement initial.
+- **Validateur** : admissions acceptées ≤ demandées, et cohortes confrontées à l'instance. Il rejette bien les 12 anciens résultats exacts.
+- **Chemins** : `method_result.json` ne contient plus de chemin absolu.
+- **Dashboard** : minimum réel des admissions ; admissions entières lues dans l'instance (plafond de yhat).
+- **Comparaison par graine** : une autre graine ne masque plus les méthodes de référence.
+
 ### Résultats (objectif canonique, plus bas = meilleur)
 
-| Scénario | Greedy | MILP/CBC | CP-SAT | Refusées | Couverture |
-|---|---:|---:|---:|---:|---:|
-| S0 nominal | 636 379 | 636 379 | 636 378 | 4 | 99,0 % |
-| S1 pic URG | 695 559 | 695 559 | 695 558 | 29 | 96,5 % |
-| S2 hausse +25 % | 924 327 | 924 327 | 924 326 | 73 | 91,0 % |
-| S3 absences 15 % | 712 885 | 712 885 | 712 885 | 4 | 99,0 % |
-| S4 crise combinée | 1 002 335 | 1 002 335 | 1 002 335 | 73 | 91,0 % |
-| S5 fermeture 10 % lits | 674 469 | 674 469 | 674 468 | 26 | 94,1 % |
+18 exécutions, 18 valides, aucune prouvée optimale. Meilleur objectif de chaque scénario en gras. Gap = (objectif − borne) / objectif.
 
-Temps : Greedy ≈ 0,13 s, MILP et CP-SAT ≈ 30 s (limite atteinte). Les trois méthodes convergent : la comparaison montre surtout l'impact des scénarios, peu celui de la méthode.
+| Scénario | Méthode | Objectif | vs Greedy | Gap | Refusées | Non soutenue | Couverture demande | Déficit RH | Équité | Temps |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| S0 nominal | Greedy | 636 379 | – | – | 4 | 18 | 99,0 % | 1 200 | 9 | 0,4 s |
+| S0 nominal | MILP/CBC | 609 870 | -4,2 % | 2,7 % | 4 | 18 | 99,0 % | 1 147 | 0 | 52,9 s |
+| S0 nominal | CP-SAT | **605 190** | -4,9 % | 2,8 % | 14 | 36 | 98,1 % | 1 102 | 0 | 52,3 s |
+| S1 pic URG | Greedy | 695 559 | – | – | 29 | 68 | 96,5 % | 1 218 | 9 | 0,4 s |
+| S1 pic URG | MILP/CBC | 666 041 | -4,2 % | 2,3 % | 30 | 69 | 96,4 % | 1 157 | 1 | 53,2 s |
+| S1 pic URG | CP-SAT | **664 490** | -4,5 % | 2,8 % | 33 | 74 | 96,2 % | 1 144 | 0 | 52,0 s |
+| S2 hausse +25 % | Greedy | 924 327 | – | – | 73 | 200 | 91,0 % | 1 408 | 7 | 0,4 s |
+| S2 hausse +25 % | MILP/CBC | 903 320 | -2,3 % | 1,1 % | 73 | 200 | 91,0 % | 1 366 | 0 | 53,1 s |
+| S2 hausse +25 % | CP-SAT | **899 240** | -2,7 % | 1,2 % | 76 | 208 | 90,7 % | 1 342 | 0 | 52,1 s |
+| S3 absences 15 % | Greedy | 712 885 | – | – | 4 | 18 | 99,0 % | 1 353 | 15 | 0,4 s |
+| S3 absences 15 % | MILP/CBC | 696 865 | -2,2 % | 2,2 % | 5 | 20 | 98,9 % | 1 317 | 15 | 52,6 s |
+| S3 absences 15 % | CP-SAT | **690 635** | -3,1 % | 2,2 % | 19 | 43 | 97,7 % | 1 259 | 15 | 51,9 s |
+| S4 crise combinée | Greedy | 1 002 335 | – | – | 73 | 200 | 91,0 % | 1 564 | 15 | 0,4 s |
+| S4 crise combinée | MILP/CBC | **984 655** | -1,8 % | 0,2 % | 76 | 218 | 90,2 % | 1 493 | 15 | 52,8 s |
+| S4 crise combinée | CP-SAT | 987 235 | -1,5 % | 1,1 % | 76 | 210 | 90,6 % | 1 514 | 15 | 51,9 s |
+| S5 fermeture 10 % lits | Greedy | 674 469 | – | – | 26 | 109 | 94,1 % | 1 096 | 9 | 0,5 s |
+| S5 fermeture 10 % lits | MILP/CBC | 650 444 | -3,6 % | 3,0 % | 27 | 111 | 94,0 % | 1 044 | 4 | 53,1 s |
+| S5 fermeture 10 % lits | CP-SAT | **644 400** | -4,5 % | 3,3 % | 30 | 115 | 93,8 % | 1 024 | 0 | 52,1 s |
+
+### Lecture
+
+- Les solveurs exacts améliorent Greedy partout, de 1,5 à 4,9 %. CP-SAT est le meilleur sur S0, S1, S2, S3 et S5, MILP/CBC sur S4. Greedy reste utile : ≈ 0,4 s, au plus à 2,0–7,2 % de l'optimum.
+- Le déficit RH représente 75 à 95 % de l'objectif, la demande non soutenue 2,5 à 23 %.
+- Le gain vient surtout du personnel (S0 : 1 200 postes manquants avec Greedy, 1 147 avec MILP, 1 102 avec CP-SAT). Il se paie parfois en accueil : en S0, CP-SAT refuse 14 patients au lieu de 4 ; en S3, 19 au lieu de 4. Aucune méthode ne domine sur tous les KPI ; en S0 et S2, MILP fait mieux que Greedy à refus égaux.
+- Couverture des postes cibles en S0 : 48 % (Greedy), 51 % (MILP), 52 % (CP-SAT). L'objectif ne pondère pas les services : en S0, MILP couvre URG à 30 % contre 48 % pour Greedy.
+- En S3 et S4, l'équité vaut 15 pour les trois méthodes parce que les absents comptent avec une charge nulle.
 
 ### Pistes restantes pour le groupe
-1. Rendre la comparaison de stratégies plus discriminante : ajouter une stratégie naïve (ex. allocation proportionnelle sans priorité de service) et/ou des profils de pondération (« minimiser les coûts » vs « maximiser l'accueil »).
+1. Enrichir la comparaison de stratégies : ajouter une stratégie naïve (ex. allocation proportionnelle sans priorité de service) et/ou des profils de pondération (« minimiser les coûts » vs « maximiser l'accueil »).
 2. Volets normatif et réglementaire (loi 09-08, confidentialité, traçabilité) à documenter explicitement.
 3. Mesurer un score d'utilisabilité (SUS) du dashboard auprès de quelques utilisateurs.
 4. Compte rendu technique et répartition de la démo entre les 6 membres.
 
 ## Limites connues
 
+- `python -m hospital_planning.operational.requirements` échoue : l'empreinte de configuration des prévisions fournies ne correspond plus à `configs/hospital.json` (déjà le cas avant ces corrections). Il faut relancer les prévisions pour reconstruire l'instance S0.
+- `mathematical_model.md` annonce des coefficients par service et une continuité aux frontières de l'horizon qui ne sont pas codés.
 - Aucun artefact ne doit être interprété comme une donnée ou recommandation clinique réelle.
 - Une méthode peut ne pas avoir produit d’artefact exploitable pour une expérience ; le dashboard affiche alors un état explicite, jamais un KPI inventé.
 - Les solveurs exacts et la grille exhaustive de sensibilité sont coûteux et ne sont jamais lancés automatiquement.
 - Les jobs sont suivis en mémoire par l’API ; leur état n’est pas conservé après un redémarrage, contrairement aux artefacts écrits.
-- La réussite finale de `npm.cmd run build` et de Playwright doit être confirmée sur un poste local autorisant les sockets et Chromium.
+- Playwright n'a été vérifié qu'avec Edge, et son test ne contrôle pas les données affichées.
 
 ## Avant publication ou phase suivante
 
