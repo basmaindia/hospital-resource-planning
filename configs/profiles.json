@@ -1,0 +1,38 @@
+{
+  "profiles": [
+    {
+      "profile_id": "equilibre",
+      "label": "Équilibré",
+      "description": "Poids de référence de hospital.json, identiques pour tous les services."
+    },
+    {
+      "profile_id": "priorite_accueil",
+      "label": "Priorité accueil",
+      "description": "Refus et journées-patients non soutenues fortement pénalisés, triplés aux urgences ; postes des urgences doublés.",
+      "objective_weights": {
+        "opened_bed": 10,
+        "unmet_patient_day": 3000,
+        "staff_target_shortage": 500,
+        "workload_imbalance": 1,
+        "rejected_admission": 5000,
+        "demand_multipliers": {
+          "URG": 3
+        },
+        "staff_multipliers": {
+          "URG": 2
+        }
+      }
+    },
+    {
+      "profile_id": "priorite_personnel",
+      "label": "Priorité personnel",
+      "description": "Postes non couverts et déséquilibre de charge davantage pénalisés ; l'accueil peut être réduit.",
+      "objective_weights": {
+        "opened_bed": 10,
+        "unmet_patient_day": 1000,
+        "staff_target_shortage": 750,
+        "workload_imbalance": 100
+      }
+    }
+  ]
+}

@@ -10,8 +10,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from hospital_planning.api.jobs import JobRegistry
-from hospital_planning.config.loader import load_hospital_config, with_solver_settings
+from hospital_planning.config.loader import load_hospital_config, load_profiles, with_profile, with_solver_settings
 from hospital_planning.domain.contracts import (
+    DEFAULT_PROFILE_ID,
     AllocationArtifactResponse,
     ArtifactProvenance,
     ExperimentJobRequest,
@@ -22,6 +23,7 @@ from hospital_planning.domain.contracts import (
     JobResponse,
     MethodResult,
     OperationalArtifactResponse,
+    ProfileDefinition,
     ScenarioReadModel,
     SensitivityManifestEntry,
 )
@@ -115,6 +117,9 @@ def get_hospital_config() -> HospitalConfig:
 @app.post("/api/v1/jobs/experiments", response_model=JobResponse, status_code=status.HTTP_202_ACCEPTED)
 def create_experiment_job(request: ExperimentJobRequest) -> JobResponse:
     """Soumet un job explicite; aucun endpoint de lecture ne lance de calcul."""
+    known = {profile.profile_id for profile in get_dashboard_profiles()}
+    if request.profile_id not in known:
+        raise HTTPException(status_code=422, detail=f"Profil inconnu: {request.profile_id}")
     return job_registry.submit(lambda: _run_experiment_job(request))
 
 
@@ -143,7 +148,13 @@ def list_experiments() -> list[ExperimentSummary]:
     ]
     return sorted(
         summaries,
-        key=lambda item: (item.scenario_id, item.seed != reference, -item.created_at.timestamp(), item.experiment_id),
+        key=lambda item: (
+            item.scenario_id,
+            item.profile_id != DEFAULT_PROFILE_ID,
+            item.seed != reference,
+            -item.created_at.timestamp(),
+            item.experiment_id,
+        ),
     )
 
 
@@ -161,8 +172,11 @@ def get_experiment(experiment_id: str) -> dict[str, object]:
 
 
 @app.get("/api/v1/dashboard/scenario-comparison")
-def get_scenario_comparison(seed: int | None = None) -> list[dict[str, object]]:
-    """Agrège les KPI persistés d'une seule expérience par scénario.
+def get_scenario_comparison(seed: int | None = None, profile: str = DEFAULT_PROFILE_ID) -> list[dict[str, object]]:
+    """Agrège les KPI persistés d'une seule expérience par scénario, pour un profil.
+
+    Les objectifs de profils différents ne sont pas comparables : ils ne sont jamais
+    mélangés dans une même réponse.
 
     Avec `seed`, seules les expériences de cette graine sont retenues. Sans `seed`,
     la graine de référence (`random_seed` de la configuration) est prioritaire : un
@@ -178,7 +192,7 @@ def get_scenario_comparison(seed: int | None = None) -> list[dict[str, object]]:
     for metadata_path in sorted(root.glob("*/experiment.json")):
         summary = _read_experiment_summary(metadata_path)
         metrics_path = metadata_path.parent / "metrics.csv"
-        if summary is None or not metrics_path.is_file():
+        if summary is None or not metrics_path.is_file() or summary.profile_id != profile:
             continue
         matches = summary.seed == wanted_seed
         if seed is not None and not matches:
@@ -192,6 +206,7 @@ def get_scenario_comparison(seed: int | None = None) -> list[dict[str, object]]:
         _, _, scenario_seed, metrics_path = selected[scenario_id]
         frame = pd.read_csv(metrics_path)
         frame["seed"] = scenario_seed
+        frame["profile_id"] = profile
         rows.extend(frame.astype(object).where(pd.notna(frame), None).to_dict(orient="records"))
     return rows
 
@@ -217,6 +232,19 @@ def get_dashboard_scenarios() -> list[ScenarioReadModel]:
         ]
     except (OSError, ValueError) as error:
         raise HTTPException(status_code=500, detail="Scénarios invalides ou indisponibles.") from error
+
+
+@app.get("/api/v1/dashboard/profiles", response_model=list[ProfileDefinition])
+def get_dashboard_profiles() -> list[ProfileDefinition]:
+    """Expose les profils de pondération ; les poids absents sont ceux de hospital.json."""
+    try:
+        config = load_hospital_config(hospital_config_path())
+        return [
+            profile.model_copy(update={"objective_weights": with_profile(config, profile).objective_weights})
+            for profile in load_profiles(project_root() / "configs" / "profiles.json", config)
+        ]
+    except (OSError, ValueError, KeyError) as error:
+        raise HTTPException(status_code=500, detail="Profils invalides ou indisponibles.") from error
 
 
 @app.get("/api/v1/dashboard/sensitivity/manifest", response_model=list[SensitivityManifestEntry])
@@ -435,6 +463,7 @@ def _read_experiment_summary(metadata_path: Path) -> ExperimentSummary | None:
             scenario_id=scenario["scenario_id"],
             created_at=metadata["created_at"],
             seed=metadata.get("seed"),
+            profile_id=metadata.get("profile_id", DEFAULT_PROFILE_ID),
             methods=metadata["methods"],
             scenario_input_hash=metadata["scenario_input_hash"],
         )
@@ -450,6 +479,12 @@ def _run_experiment_job(request: ExperimentJobRequest) -> list[str]:
         request.solver_time_limit_seconds,
         request.solver_num_workers,
     )
+    profiles = {
+        profile.profile_id: profile for profile in load_profiles(root / "configs" / "profiles.json", config)
+    }
+    if request.profile_id not in profiles:
+        raise ValueError(f"Profil inconnu: {request.profile_id}")
+    config = with_profile(config, profiles[request.profile_id])
     instance_directory = root / "results" / "operational_instances" / "S0"
     demand = pd.read_csv(instance_directory / "demand_requirements.csv", parse_dates=["date"])
     beds = pd.read_csv(instance_directory / "bed_requirements.csv", parse_dates=["date"])
@@ -477,6 +512,7 @@ def _run_experiment_job(request: ExperimentJobRequest) -> list[str]:
             config,
             methods=tuple(request.methods),
             seed=request.seed,
+            profile_id=request.profile_id,
         )
         save_experiment(experiment, outputs, experiments_root() / experiment.experiment_id)
         experiment_ids.append(experiment.experiment_id)

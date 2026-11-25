@@ -12,14 +12,15 @@ L'API FastAPI est versionnée sous `/api/v1`. Les lectures de configuration, job
 | `GET /api/v1/experiments/{experiment_id}` | métadonnées et KPI | lecture d'artefacts stockés |
 | `GET /api/v1/experiments/{experiment_id}/downloads/{artifact_path}` | fichier | téléchargement contrôlé d'un artefact existant |
 | `GET /api/v1/dashboard/scenarios` | scénarios configurés | lecture de `configs/scenarios.json` |
-| `GET /api/v1/dashboard/scenario-comparison` | KPI d'une expérience par scénario (graine de référence, ou `?seed=` explicite) | lecture d'artefacts stockés |
+| `GET /api/v1/dashboard/scenario-comparison` | KPI d'une expérience par scénario pour un profil (`?profile=`, `equilibre` par défaut ; graine de référence, ou `?seed=` explicite) | lecture d'artefacts stockés |
+| `GET /api/v1/dashboard/profiles` | profils de pondération et leurs poids | lecture de `configs/profiles.json` |
 | `GET /api/v1/dashboard/sensitivity/manifest` | grille déclarative de sensibilité | lecture de `results/experiments/sensitivity_manifest.csv` |
 | `GET /api/v1/dashboard/forecasts` | prévisions finales et métriques | lecture de `results/forecasts/` |
 | `GET /api/v1/dashboard/exploration` | admissions, occupation, capacité | lecture de `data/synthetic/` |
 | `GET /api/v1/dashboard/operational/{scenario_id}` | besoins opérationnels | lecture de `results/operational_instances/` |
 | `GET /api/v1/dashboard/experiments/{experiment_id}/methods/{method_name}` | résultat, lits et couverture RH | lecture contrôlée d'une expérience persistée |
 
-`POST /api/v1/jobs/experiments` accepte `scenario_ids`, `methods` et une graine optionnelle. Par défaut, il exécute seulement Greedy. Un unique worker local traite les jobs afin de ne pas surallouer les solveurs. Les états de job (`QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`) sont distincts des statuts de méthode (`OPTIMAL`, `FEASIBLE`, `INFEASIBLE`, `UNKNOWN`, `ERROR`).
+`POST /api/v1/jobs/experiments` accepte `scenario_ids`, `methods` (`naive`, `greedy`, `milp`, `cp_sat`), `profile_id` (422 si inconnu) et une graine optionnelle. Un profil autre que `equilibre` est stocké dans une expérience distincte, suffixée par son identifiant ; des méthodes évaluées avec des poids différents ne sont jamais fusionnées. Par défaut, il exécute seulement Greedy. Un unique worker local traite les jobs afin de ne pas surallouer les solveurs. Les états de job (`QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`) sont distincts des statuts de méthode (`OPTIMAL`, `FEASIBLE`, `INFEASIBLE`, `UNKNOWN`, `ERROR`).
 
 ## Exemples
 

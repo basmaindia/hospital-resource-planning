@@ -41,7 +41,7 @@ def validate_solution(
     coverage = _build_coverage(bed_allocations, staff_assignments, config)
     minimum_coverage_violations = int((coverage["assigned_staff"] < coverage["minimum_staff"]).sum())
     coverage_deficits = int(coverage["target_shortage"].sum())
-    workload_range = _calculate_workload_range(staff_assignments, staff)
+    workload_range = _calculate_workload_range(staff_assignments, staff, planning_availability)
     hard_constraint_violations = (
         capacity_violations
         + admission_violations
@@ -251,17 +251,18 @@ def _count_consecutive_night_violations(assignments: pd.DataFrame, config: Hospi
     return violations
 
 
-def _calculate_workload_range(assignments: pd.DataFrame, staff: pd.DataFrame) -> int:
-    """Recalcule l'étendue de charge, en incluant les actifs sans affectation."""
+def _calculate_workload_range(
+    assignments: pd.DataFrame, staff: pd.DataFrame, planning_availability: pd.DataFrame
+) -> int:
+    """Recalcule l'étendue de charge parmi les actifs présents au moins une fois."""
     active_mask = staff["active"] if "active" in staff else pd.Series(True, index=staff.index)
-    active_staff = staff.loc[active_mask, ["staff_id", "role"]].copy()
-    if active_staff.empty:
-        return 0
-    assignment_counts = assignments.groupby("staff_id").size().rename("assigned_shifts")
-    active_staff = active_staff.join(assignment_counts, on="staff_id")
-    active_staff["assigned_shifts"] = active_staff["assigned_shifts"].fillna(0).astype(int)
-    ranges = active_staff.groupby("role")["assigned_shifts"].agg(lambda values: int(values.max() - values.min()))
-    return int(ranges.sum())
+    is_present = planning_availability.groupby("staff_id")["available"].any()
+    loads: dict[str, list[int]] = {}
+    counts = assignments["staff_id"].value_counts()
+    for row in staff.loc[active_mask].itertuples(index=False):
+        if bool(is_present.get(row.staff_id, False)):
+            loads.setdefault(row.role, []).append(int(counts.get(row.staff_id, 0)))
+    return sum(max(values) - min(values) for values in loads.values())
 
 
 def _build_coverage(

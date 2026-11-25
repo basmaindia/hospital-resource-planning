@@ -9,8 +9,8 @@ from pathlib import Path, PurePosixPath
 
 import pandas as pd
 
-from hospital_planning.config.loader import load_hospital_config, with_solver_settings
-from hospital_planning.domain.contracts import HospitalConfig, MethodResult
+from hospital_planning.config.loader import load_hospital_config, load_profiles, with_profile, with_solver_settings
+from hospital_planning.domain.contracts import DEFAULT_PROFILE_ID, HospitalConfig, MethodResult
 from hospital_planning.domain.enums import MethodStatus
 from hospital_planning.experiments.scenarios import (
     ScenarioDefinition,
@@ -21,6 +21,9 @@ from hospital_planning.experiments.scenarios import (
 )
 from hospital_planning.optimization.exact import ExactResult, run_cp_sat, run_milp, save_exact_result
 from hospital_planning.optimization.greedy import GreedyResult, run_greedy, save_greedy_result
+from hospital_planning.optimization.naive import run_naive
+
+METHODS = ("naive", "greedy", "milp", "cp_sat")
 
 
 @dataclass(frozen=True)
@@ -32,6 +35,8 @@ class ExperimentResult:
     method_results: tuple[MethodResult, ...]
     metrics: pd.DataFrame
     created_at: datetime
+    profile_id: str = DEFAULT_PROFILE_ID
+    objective_weights: dict[str, object] | None = None
 
 
 def run_experiment(
@@ -44,11 +49,15 @@ def run_experiment(
     instance_metadata: dict[str, object],
     config: HospitalConfig,
     *,
-    methods: tuple[str, ...] = ("greedy", "milp", "cp_sat"),
+    methods: tuple[str, ...] = METHODS,
     seed: int | None = None,
+    profile_id: str = DEFAULT_PROFILE_ID,
 ) -> tuple[ExperimentResult, dict[str, GreedyResult | ExactResult]]:
-    """Exécute chaque méthode sur une unique copie scénario identifiée."""
-    if not methods or set(methods) - {"greedy", "milp", "cp_sat"}:
+    """Exécute chaque méthode sur une unique copie scénario identifiée.
+
+    `config` porte déjà les poids du profil ; `profile_id` les nomme.
+    """
+    if not methods or set(methods) - set(METHODS):
         raise ValueError("methods doit contenir une ou plusieurs méthodes connues.")
     scenario_seed = config.random_seed if seed is None else seed
     scenario = apply_scenario(
@@ -59,10 +68,11 @@ def run_experiment(
         config,
         seed=scenario_seed,
     )
-    metadata = _scenario_metadata(instance_metadata, scenario)
+    metadata = _scenario_metadata(instance_metadata, scenario, profile_id)
     results: dict[str, GreedyResult | ExactResult] = {}
     method_results: list[MethodResult] = []
     runners = {
+        "naive": run_naive,
         "greedy": run_greedy,
         "milp": run_milp,
         "cp_sat": run_cp_sat,
@@ -83,10 +93,21 @@ def run_experiment(
         else:
             results[method_name] = output
             method_results.append(output.method_result)
-    experiment_id = f"experiment-{definition.scenario_id.lower()}-{scenario.input_hash[:12]}"
+    # Le profil change l'objectif, pas l'instance : il distingue les expériences par un suffixe.
+    suffix = "" if profile_id == DEFAULT_PROFILE_ID else f"-{profile_id}"
+    experiment_id = f"experiment-{definition.scenario_id.lower()}-{scenario.input_hash[:12]}{suffix}"
     result_tuple = tuple(method_results)
-    metrics = _metrics_frame(experiment_id, definition, scenario, result_tuple)
-    return ExperimentResult(experiment_id, scenario, result_tuple, metrics, datetime.now(UTC)), results
+    metrics = _metrics_frame(experiment_id, definition, scenario, result_tuple, profile_id)
+    experiment = ExperimentResult(
+        experiment_id,
+        scenario,
+        result_tuple,
+        metrics,
+        datetime.now(UTC),
+        profile_id,
+        config.objective_weights.model_dump(mode="json"),
+    )
+    return experiment, results
 
 
 def save_experiment(
@@ -108,7 +129,9 @@ def save_experiment(
     experiment.scenario.demand_requirements.to_csv(paths["demand"], index=False)
     experiment.scenario.bed_requirements.to_csv(paths["beds"], index=False)
     experiment.scenario.planning_availability.to_csv(paths["availability"], index=False)
-    previous = _previous_metadata(paths["metadata"], experiment.scenario.input_hash)
+    previous = _previous_metadata(
+        paths["metadata"], experiment.scenario.input_hash, experiment.profile_id, experiment.objective_weights
+    )
     metrics = experiment.metrics
     if previous is not None and paths["metrics"].is_file():
         # Une méthode lancée seule (ex. depuis le dashboard) ne doit pas effacer
@@ -116,7 +139,7 @@ def save_experiment(
         old_metrics = pd.read_csv(paths["metrics"])
         old_metrics = old_metrics[~old_metrics["method_name"].isin(metrics["method_name"])]
         metrics = pd.concat([old_metrics, metrics], ignore_index=True)
-        metrics["_order"] = metrics["method_name"].map({"greedy": 0, "milp": 1, "cp_sat": 2}).fillna(9)
+        metrics["_order"] = metrics["method_name"].map({name: rank for rank, name in enumerate(METHODS)}).fillna(9)
         metrics = metrics.sort_values("_order").drop(columns="_order").reset_index(drop=True)
     metrics.to_csv(paths["metrics"], index=False)
     method_paths: dict[str, dict[str, Path]] = {}
@@ -124,7 +147,7 @@ def save_experiment(
         method_directory = output_directory / method_name
         method_paths[method_name] = (
             save_greedy_result(output, method_directory)
-            if method_name == "greedy"
+            if method_name in ("naive", "greedy")
             else save_exact_result(output, method_directory)
         )
     metadata = {
@@ -132,6 +155,8 @@ def save_experiment(
         "created_at": experiment.created_at.isoformat(),
         "scenario": experiment.scenario.definition.model_dump(),
         "seed": experiment.scenario.seed,
+        "profile_id": experiment.profile_id,
+        "objective_weights": experiment.objective_weights,
         "scenario_input_hash": experiment.scenario.input_hash,
         "methods": list(metrics["method_name"]),
         "method_artifacts": {
@@ -148,8 +173,13 @@ def save_experiment(
     return paths
 
 
-def _previous_metadata(metadata_path: Path, input_hash: str) -> dict[str, object] | None:
-    """Relit une expérience existante seulement si elle porte sur la même instance."""
+def _previous_metadata(
+    metadata_path: Path,
+    input_hash: str,
+    profile_id: str = DEFAULT_PROFILE_ID,
+    objective_weights: dict[str, object] | None = None,
+) -> dict[str, object] | None:
+    """Relit une expérience existante seulement si instance, profil et poids sont identiques."""
     if not metadata_path.is_file():
         return None
     try:
@@ -157,6 +187,11 @@ def _previous_metadata(metadata_path: Path, input_hash: str) -> dict[str, object
     except (OSError, ValueError):
         return None
     if metadata.get("scenario_input_hash") != input_hash:
+        return None
+    if metadata.get("profile_id", DEFAULT_PROFILE_ID) != profile_id:
+        return None
+    # Des méthodes évaluées avec d'autres poids ne sont pas comparables : pas de fusion.
+    if metadata.get("objective_weights") != objective_weights:
         return None
     # Normalise les anciens chemins (absolus ou « results\\... ») en « <méthode>/<fichier> ».
     metadata["method_artifacts"] = {
@@ -184,13 +219,16 @@ def sensitivity_manifest(config: HospitalConfig, *, seed: int | None = None) -> 
     )
 
 
-def _scenario_metadata(metadata: dict[str, object], scenario: ScenarioInstance) -> dict[str, object]:
+def _scenario_metadata(
+    metadata: dict[str, object], scenario: ScenarioInstance, profile_id: str
+) -> dict[str, object]:
     scenario_metadata = deepcopy(metadata)
     instance = scenario_metadata["instance"]
     assert isinstance(instance, dict)
     instance["scenario_id"] = scenario.definition.scenario_id
     instance["instance_id"] = f"{instance['instance_id']}-{scenario.definition.scenario_id.lower()}"
     instance["input_hash"] = scenario.input_hash
+    instance["profile_id"] = profile_id
     return scenario_metadata
 
 
@@ -206,6 +244,7 @@ def _error_result(
         experiment_id=f"{method_name}-{instance['instance_id']}",
         scenario_id=str(instance["scenario_id"]),
         method_name=method_name,
+        profile_id=str(instance.get("profile_id", DEFAULT_PROFILE_ID)),
         status=MethodStatus.ERROR,
         runtime_seconds=0.0,
         seed=config.random_seed,
@@ -220,6 +259,7 @@ def _metrics_frame(
     definition: ScenarioDefinition,
     scenario: ScenarioInstance,
     results: tuple[MethodResult, ...],
+    profile_id: str,
 ) -> pd.DataFrame:
     rows: list[dict[str, object]] = []
     for result in results:
@@ -229,6 +269,7 @@ def _metrics_frame(
             {
                 "experiment_id": experiment_id,
                 "scenario_id": definition.scenario_id,
+                "profile_id": profile_id,
                 "scenario_input_hash": scenario.input_hash,
                 "method_name": result.method_name,
                 "status": result.status.value,
@@ -251,6 +292,7 @@ def _metrics_frame(
                 "unmet_patient_day_cost": components.unmet_patient_day_cost if components else None,
                 "staff_target_shortage_cost": components.staff_target_shortage_cost if components else None,
                 "workload_imbalance_cost": components.workload_imbalance_cost if components else None,
+                "rejected_admission_cost": components.rejected_admission_cost if components else None,
             }
         )
     return pd.DataFrame.from_records(rows)
@@ -265,7 +307,9 @@ def main() -> None:
     parser.add_argument("--staff", type=Path, default=Path("data/synthetic/staff.csv"))
     parser.add_argument("--availability", type=Path, default=Path("data/synthetic/staff_availability.csv"))
     parser.add_argument("--output", type=Path, default=Path("results/experiments"))
-    parser.add_argument("--methods", nargs="+", choices=("greedy", "milp", "cp_sat"), default=["greedy"])
+    parser.add_argument("--methods", nargs="+", choices=METHODS, default=["greedy"])
+    parser.add_argument("--profiles-file", type=Path, default=Path("configs/profiles.json"))
+    parser.add_argument("--profiles", nargs="+", default=[DEFAULT_PROFILE_ID], help="Profils de pondération.")
     parser.add_argument("--time-limit", type=int, help="Limite en secondes par solveur exact (défaut : configuration).")
     parser.add_argument("--workers", type=int, help="Threads par solveur exact (défaut : configuration).")
     parser.add_argument("--sensitivity-manifest", action="store_true")
@@ -284,21 +328,29 @@ def main() -> None:
     from hospital_planning.optimization.availability import project_planning_availability
 
     planning_availability = project_planning_availability(staff, availability, demand["date"], config)
+    profiles = {profile.profile_id: profile for profile in load_profiles(arguments.profiles_file, config)}
+    unknown = sorted(set(arguments.profiles) - set(profiles))
+    if unknown:
+        parser.error(f"profils inconnus : {unknown}")
     all_metrics: list[pd.DataFrame] = []
-    for definition in load_scenarios(arguments.scenarios, config):
-        experiment, outputs = run_experiment(
-            definition,
-            demand,
-            beds,
-            staff,
-            availability,
-            planning_availability,
-            metadata,
-            config,
-            methods=tuple(arguments.methods),
-        )
-        save_experiment(experiment, outputs, arguments.output / experiment.experiment_id)
-        all_metrics.append(experiment.metrics)
+    for profile_id in arguments.profiles:
+        profile_config = with_profile(config, profiles[profile_id])
+        for definition in load_scenarios(arguments.scenarios, config):
+            experiment, outputs = run_experiment(
+                definition,
+                demand,
+                beds,
+                staff,
+                availability,
+                planning_availability,
+                metadata,
+                profile_config,
+                methods=tuple(arguments.methods),
+                profile_id=profile_id,
+            )
+            save_experiment(experiment, outputs, arguments.output / experiment.experiment_id)
+            all_metrics.append(experiment.metrics)
+            print(f"{profile_id} {definition.scenario_id} terminé", flush=True)
     pd.concat(all_metrics, ignore_index=True).to_csv(arguments.output / "scenario_summary.csv", index=False)
 
 

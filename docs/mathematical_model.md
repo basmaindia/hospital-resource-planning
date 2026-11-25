@@ -2,7 +2,7 @@
 
 ## Statut
 
-Ce document décrit la formulation **réellement codée** dans `src/hospital_planning/optimization/` (`greedy.py`, `exact.py`, `objective.py`, `validator.py`). Il ne constitue pas une recommandation clinique ou réglementaire. Tous les coefficients et ratios sont synthétiques et configurables dans `configs/hospital.json`. Les écarts assumés avec un hôpital réel sont listés dans « Hypothèses et limites ».
+Ce document décrit la formulation **réellement codée** dans `src/hospital_planning/optimization/` (`naive.py`, `greedy.py`, `exact.py`, `objective.py`, `validator.py`). Il ne constitue pas une recommandation clinique ou réglementaire. Tous les coefficients et ratios sont synthétiques et configurables dans `configs/hospital.json`. Les écarts assumés avec un hôpital réel sont listés dans « Hypothèses et limites ».
 
 ## Unités
 
@@ -70,7 +70,7 @@ La demande non soutenue n'est pas une variable : `D[s,t] = occ[s,t] − O[s,t]`.
 6. **Nombre de postes** : `Σ(s,t,k) X[i,s,t,k] ≤ max[i]`.
 7. **Repos** : deux postes de jours consécutifs sont incompatibles si moins de `min_rest_hours` (11 h) les sépare.
 8. **Nuits** : au plus `max_consecutive_nights` (3) nuits consécutives, sur toute fenêtre de 4 jours de l'horizon.
-9. **Charges** : `Wmin[r] ≤ charge[i] ≤ Wmax[r]` pour tout professionnel actif `i` de rôle `r`.
+9. **Charges** : `Wmin[r] ≤ charge[i] ≤ Wmax[r]` pour tout professionnel actif et présent `i` de rôle `r`.
 
 La politique `shortage_permitting`, utilisée par défaut, n'assouplit que la cible (4), par `Q`. La politique `strict` ajoute `A = req` et `Q = 0`.
 
@@ -87,18 +87,21 @@ Les sept jours sont planifiés comme une fenêtre isolée :
 
 Minimiser :
 
-`c_lit × Σ L[s,t] + c_dem × Σ D[s,t] + c_rh × Σ Q[s,t,k,r] + c_eq × Σ(r) (Wmax[r] − Wmin[r])`.
+`c_lit × Σ L[s,t] + Σ c_dem[s] × D[s,t] + Σ c_ref[s] × (req − A)[s,t] + Σ c_rh[s] × Q[s,t,k,r] + c_eq × Σ(r) (Wmax[r] − Wmin[r])`.
 
-| Coefficient | Valeur | Champ de `objective_weights` |
-|---|---:|---|
-| `c_lit` | 10 par lit-jour ouvert | `opened_bed` |
-| `c_dem` | 1000 par journée-patient non soutenue | `unmet_patient_day` |
-| `c_rh` | 500 par poste cible non couvert | `staff_target_shortage` |
-| `c_eq` | 1 par poste d'étendue de charge | `workload_imbalance` |
+Les coefficients sont des entiers fixés par un **profil de pondération** (`configs/profiles.json`). Les multiplicateurs par service valent 1 sauf mention contraire.
 
-Les coefficients sont entiers et **uniformes** : ils ne dépendent ni du service, ni du poste, ni du rôle. Le champ `priority` d'un service n'intervient donc pas dans l'objectif. Il ne sert qu'à Greedy, pour l'ordre de traitement des besoins en personnel (REA, URG, CHI, MED). Les trois méthodes sont évaluées avec le même objectif, recalculé depuis les tables retournées.
+| Coefficient | Champ | `equilibre` | `priorite_accueil` | `priorite_personnel` |
+|---|---|---:|---:|---:|
+| `c_lit`, par lit-jour ouvert | `opened_bed` | 10 | 10 | 10 |
+| `c_dem`, par journée-patient non soutenue | `unmet_patient_day` | 1000 | 3000 (URG ×3) | 1000 |
+| `c_ref`, par admission refusée | `rejected_admission` | 0 | 5000 (URG ×3) | 0 |
+| `c_rh`, par poste cible non couvert | `staff_target_shortage` | 500 | 500 (URG ×2) | 750 |
+| `c_eq`, par poste d'étendue de charge | `workload_imbalance` | 1 | 1 | 100 |
 
-Conséquences à connaître :
+Ces valeurs sont des hypothèses de démonstration. Le profil `equilibre` reprend les poids de `hospital.json`. Les objectifs de deux profils ne sont pas comparables entre eux : on compare leurs KPI. Le champ `priority` d'un service n'intervient pas dans l'objectif ; il ne sert qu'à Greedy, pour l'ordre de traitement du personnel (REA, URG, CHI, MED). Toutes les méthodes d'un profil sont évaluées avec le même objectif, recalculé depuis les tables retournées.
+
+Conséquences à connaître, avec le profil `equilibre` :
 
 - dix lits ouverts demandent 12 postes cibles par jour. Sans personnel disponible, un lit coûte donc en moyenne 610 (10 + 1,2 × 500), moins que les 1000 d'une journée-patient refusée : accueillir reste préférable **en moyenne** ;
 - mais la cible est arrondie au-dessus. Passer de 5 à 6 lits ajoute 3 postes infirmiers (1 510 avec le lit), et passer de 10 à 11 lits ajoute 9 postes (4 510) : refuser un patient pour rester sous un palier devient avantageux. C'est l'essentiel des refus supplémentaires de CP-SAT en S0 (14 au lieu de 4) : sur les 11 services-jours où il ouvre un nombre de lits différent de Greedy, 7 se terminent sur un multiple de 5 ;
@@ -106,16 +109,18 @@ Conséquences à connaître :
 
 ## Équité
 
-Les groupes comparables sont les professionnels **actifs du même rôle**. Pour chaque rôle, l'étendue est `max(charge) − min(charge)` ; `workload_range` est la somme des étendues. Un professionnel actif sans affectation compte avec une charge nulle, **y compris s'il est absent sur tout l'horizon** (S3, S4) : l'étendue y reste au plafond (5 postes × 3 rôles = 15) pour toutes les méthodes. Le validateur recalcule cette valeur indépendamment.
+Les groupes comparables sont les professionnels **actifs et présents du même rôle**. Pour chaque rôle, l'étendue est `max(charge) − min(charge)` ; `workload_range` est la somme des étendues. Seuls comptent les **présents**, c'est-à-dire disponibles à au moins un poste de l'horizon. Un présent sans affectation compte avec une charge nulle ; un agent absent sur tout l'horizon (S3, S4) est exclu, sinon l'étendue resterait au plafond quelle que soit la méthode. Un agent présent une partie de l'horizon reste compté. Le validateur recalcule cette valeur indépendamment.
 
 ## Méthodes
 
+- **Naïve** : sert de point de comparaison bas. Chaque jour, un taux d'acceptation unique (lits libres de l'hôpital / demande, au plus 1) s'applique à tous les services, dans la limite de leurs lits. Pour le personnel, après la dotation minimale obligatoire, chaque besoin reçoit la même fraction de sa cible (répartition aux plus forts restes de la capacité hebdomadaire du rôle). Aucun service n'est prioritaire et les postes qu'un service ne peut pas pourvoir ne sont pas redistribués.
 - **Greedy** : chaque jour et service, applique les sorties, accepte autant d'admissions que de lits libres et ouvre exactement les lits occupés. Il affecte ensuite le personnel en deux passes, dotation minimale puis cible, dans l'ordre date, priorité du service, poste, rôle, et choisit le premier professionnel admissible par identifiant. Il ne refuse jamais un patient pour réduire le déficit RH.
-- **MILP/CBC** et **CP-SAT** : résolvent la formulation ci-dessus dans un budget de temps. Voir [exact_solvers.md](exact_solvers.md).
+- Naïve et Greedy ne lisent pas les poids : leur plan est identique pour tous les profils, seule leur évaluation change.
+- **MILP/CBC** et **CP-SAT** : résolvent la formulation ci-dessus avec les poids du profil dans un budget de temps. Voir [exact_solvers.md](exact_solvers.md).
 
 ## KPI
 
-- `rejected_admissions` est un KPI en patients, sans coût propre : la demande est pénalisée une seule fois, par les journées-patients non soutenues.
+- `rejected_admissions` est un KPI en patients, sans coût propre avec `equilibre` et `priorite_personnel` : la demande n'y est pénalisée que par les journées-patients non soutenues. Seul `priorite_accueil` ajoute un coût par refus, qui corrige aussi l'effet de fin d'horizon.
 - `coverage_rate` = occupation soutenue / occupation demandée. Il mesure l'accueil, pas le personnel. Si l'occupation demandée est nulle, le code retourne 1 par convention.
 - `staff_shortage_total` = Σ `max(cible − affectés, 0)`, avec une cible entière `max(min[r], ceil(ratio[r] × L / 10))` pour un service ouvert.
 - `optimality_gap` = (objectif − borne) / objectif, lorsqu'un solveur fournit une borne.
@@ -126,6 +131,7 @@ Le validateur recompte, depuis les tables retournées et sans réutiliser les co
 
 ## Hypothèses et limites
 
+- Dans les données synthétiques, les qualifications forment deux viviers disjoints : {URG, CHI} et {REA, MED}. Aucun agent ne peut passer de l'un à l'autre ; donner la priorité à URG ne peut donc prendre du personnel qu'à CHI. MED ne peut être pourvu que par les agents aussi qualifiés en REA.
 - La durée de séjour est fixe et déterministe par service ; aucun transfert entre services n'est modélisé.
 - L'occupation est journalière : les pics dans la journée ne sont pas représentés.
 - Les heures contractuelles (`contracted_hours`) ne sont pas une contrainte. La charge est limitée en nombre de postes (`max_shifts` = 5, soit 40 h avec des postes de 8 h). Les heures supplémentaires ne sont pas modélisées.

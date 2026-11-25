@@ -11,11 +11,15 @@ from time import perf_counter
 import pandas as pd
 
 from hospital_planning.config.loader import load_hospital_config
-from hospital_planning.domain.contracts import HospitalConfig, MethodResult
+from hospital_planning.domain.contracts import DEFAULT_PROFILE_ID, HospitalConfig, MethodResult
 from hospital_planning.domain.enums import MethodStatus
 from hospital_planning.optimization.availability import project_planning_availability
 from hospital_planning.optimization.greedy import GreedyResult, run_greedy
-from hospital_planning.optimization.objective import calculate_objective_components, calculate_workload_range
+from hospital_planning.optimization.objective import (
+    calculate_objective_components,
+    calculate_workload_range,
+    sum_by_service,
+)
 from hospital_planning.optimization.validator import validate_solution
 
 
@@ -264,6 +268,12 @@ def _build_inputs(
     )
 
 
+def _comparable_staff(inputs: ExactInputs, role: str) -> list[str]:
+    """Professionnels actifs du rôle, disponibles au moins une fois sur l'horizon."""
+    present = {staff_id for staff_id, _, _ in inputs.available}
+    return [staff_id for staff_id in inputs.staff_ids if inputs.staff_role[staff_id] == role and staff_id in present]
+
+
 def _eligible_keys(inputs: ExactInputs) -> list[tuple[str, int, str, str]]:
     return [
         (staff_id, date_index, service, shift)
@@ -308,9 +318,9 @@ def _hint_values(
     assignment_counts = greedy_hint.staff_assignments.groupby("staff_id").size().rename("assigned_shifts")
     active_staff = active_staff.join(assignment_counts, on="staff_id").fillna({"assigned_shifts": 0})
     for role in inputs.roles:
-        role_loads = active_staff.loc[active_staff["role"] == role, "assigned_shifts"]
-        values[variables["load_min"][role]] = int(role_loads.min())
-        values[variables["load_max"][role]] = int(role_loads.max())
+        role_loads = active_staff.loc[active_staff["staff_id"].isin(_comparable_staff(inputs, role)), "assigned_shifts"]
+        values[variables["load_min"][role]] = int(role_loads.min()) if len(role_loads) else 0
+        values[variables["load_max"][role]] = int(role_loads.max()) if len(role_loads) else 0
     return values
 
 
@@ -476,7 +486,10 @@ def _add_pulp_staff_constraints(
             ]
             model += _pulp_sum(nights) <= config.planning_policy.max_consecutive_nights
     for role in inputs.roles:
-        role_staff = [staff_id for staff_id in inputs.staff_ids if inputs.staff_role[staff_id] == role]
+        role_staff = _comparable_staff(inputs, role)
+        if not role_staff:
+            model += variables["load_max"][role] == 0
+            model += variables["load_min"][role] == 0
         for staff_id in role_staff:
             load = _pulp_sum([assignment[key] for key in assignment if key[0] == staff_id])
             model += variables["load_min"][role] <= load
@@ -485,15 +498,24 @@ def _add_pulp_staff_constraints(
 
 def _pulp_objective(variables: dict[str, dict[object, object]], inputs: ExactInputs, config: HospitalConfig) -> object:
     opened = _pulp_sum(list(variables["opened"].values()))
-    unmet = _pulp_sum([inputs.occupancy_required[key] - variables["occupancy"][key] for key in variables["occupancy"]])
-    shortage = _pulp_sum(list(variables["shortage"].values()))
-    workload_range = _pulp_sum([variables["load_max"][role] - variables["load_min"][role] for role in inputs.roles])
-    return (
-        config.objective_weights.opened_bed * opened
-        + config.objective_weights.unmet_patient_day * unmet
-        + config.objective_weights.staff_target_shortage * shortage
-        + config.objective_weights.workload_imbalance * workload_range
+    weights = config.objective_weights
+    unmet = _pulp_sum(
+        [
+            weights.unmet_weight(key[0]) * (inputs.occupancy_required[key] - variables["occupancy"][key])
+            for key in variables["occupancy"]
+        ]
     )
+    rejected = _pulp_sum(
+        [
+            weights.rejection_weight(key[0]) * (inputs.requested[key] - variables["accepted"][key])
+            for key in variables["accepted"]
+        ]
+    )
+    shortage = _pulp_sum(
+        [weights.shortage_weight(key[0]) * variable for key, variable in variables["shortage"].items()]
+    )
+    workload_range = _pulp_sum([variables["load_max"][role] - variables["load_min"][role] for role in inputs.roles])
+    return weights.opened_bed * opened + unmet + rejected + shortage + weights.workload_imbalance * workload_range
 
 
 def _create_cp_sat_variables(
@@ -597,7 +619,11 @@ def _add_cp_sat_staff_constraints(
             ]
             model.add(sum(nights) <= config.planning_policy.max_consecutive_nights)
     for role in inputs.roles:
-        for staff_id in [staff_id for staff_id in inputs.staff_ids if inputs.staff_role[staff_id] == role]:
+        role_staff = _comparable_staff(inputs, role)
+        if not role_staff:
+            model.add(variables["load_max"][role] == 0)
+            model.add(variables["load_min"][role] == 0)
+        for staff_id in role_staff:
             load = sum(assignment[key] for key in assignment if key[0] == staff_id)
             model.add(variables["load_min"][role] <= load)
             model.add(variables["load_max"][role] >= load)
@@ -607,15 +633,20 @@ def _cp_sat_objective(
     variables: dict[str, dict[object, object]], inputs: ExactInputs, config: HospitalConfig
 ) -> object:
     opened = sum(variables["opened"].values())
-    unmet = sum(inputs.occupancy_required[key] - variables["occupancy"][key] for key in variables["occupancy"])
-    shortage = sum(variables["shortage"].values())
-    workload_range = sum(variables["load_max"][role] - variables["load_min"][role] for role in inputs.roles)
-    return (
-        config.objective_weights.opened_bed * opened
-        + config.objective_weights.unmet_patient_day * unmet
-        + config.objective_weights.staff_target_shortage * shortage
-        + config.objective_weights.workload_imbalance * workload_range
+    weights = config.objective_weights
+    unmet = sum(
+        weights.unmet_weight(key[0]) * (inputs.occupancy_required[key] - variables["occupancy"][key])
+        for key in variables["occupancy"]
     )
+    rejected = sum(
+        weights.rejection_weight(key[0]) * (inputs.requested[key] - variables["accepted"][key])
+        for key in variables["accepted"]
+    )
+    shortage = sum(
+        weights.shortage_weight(key[0]) * variable for key, variable in variables["shortage"].items()
+    )
+    workload_range = sum(variables["load_max"][role] - variables["load_min"][role] for role in inputs.roles)
+    return weights.opened_bed * opened + unmet + rejected + shortage + weights.workload_imbalance * workload_range
 
 
 def _extract_pulp_solution(
@@ -735,11 +766,14 @@ def _result_from_artifacts(
     supported_occupancy = int(bed_allocations["occupancy_end"].sum())
     unmet_patient_days = required_occupancy - supported_occupancy
     shortage = int(coverage["target_shortage"].sum())
-    workload_range = calculate_workload_range(assignments, staff)
+    workload_range = calculate_workload_range(assignments, staff, planning_availability)
+    required = sum_by_service(bed_allocations, "occupancy_required")
+    supported = sum_by_service(bed_allocations, "occupancy_end")
     components = calculate_objective_components(
         int(bed_allocations["opened_beds"].sum()),
-        unmet_patient_days,
-        shortage,
+        {service: required[service] - supported[service] for service in required},
+        sum_by_service(bed_allocations, "rejected_admissions"),
+        sum_by_service(coverage, "target_shortage"),
         workload_range,
         config,
     )
@@ -747,6 +781,7 @@ def _result_from_artifacts(
         experiment_id=f"{method_name}-{instance['instance_id']}",
         scenario_id=instance["scenario_id"],
         method_name=method_name,
+        profile_id=instance.get("profile_id", DEFAULT_PROFILE_ID),
         status=status,
         runtime_seconds=runtime_seconds,
         objective_value=components.total_cost,
@@ -781,6 +816,7 @@ def _empty_result(
         experiment_id=f"{method_name}-{instance['instance_id']}",
         scenario_id=instance["scenario_id"],
         method_name=method_name,
+        profile_id=instance.get("profile_id", DEFAULT_PROFILE_ID),
         status=MethodStatus.INFEASIBLE if "infeasible" in native_status.lower() else MethodStatus.UNKNOWN,
         runtime_seconds=runtime_seconds,
         seed=config.random_seed,

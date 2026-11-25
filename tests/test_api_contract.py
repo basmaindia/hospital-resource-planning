@@ -133,8 +133,9 @@ def test_dashboard_read_contracts_expose_only_persisted_artifacts(monkeypatch, r
     assert len(milp_allocation.allocations) == 28
     assert all(point.occupancy_required is not None for point in milp_allocation.allocations)
     assert len(cp_sat_allocation.allocations) == 28
-    assert len(comparison) == 6 * 3
-    assert {row["method_name"] for row in comparison} == {"greedy", "milp", "cp_sat"}
+    stored_methods = {row["method_name"] for row in comparison}
+    assert stored_methods >= {"greedy", "milp", "cp_sat"}
+    assert len(comparison) == 6 * len(stored_methods)
     assert all(row["validation_passed"] for row in comparison)
 
 

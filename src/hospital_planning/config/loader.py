@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from hospital_planning.domain.contracts import HospitalConfig
+from hospital_planning.domain.contracts import DEFAULT_PROFILE_ID, HospitalConfig, ProfileDefinition
 
 
 def load_hospital_config(path: Path) -> HospitalConfig:
@@ -42,3 +42,29 @@ def demand_config_hash(config: HospitalConfig) -> str:
     )
     serialized = json.dumps(demand_parameters, sort_keys=True, ensure_ascii=False)
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+def load_profiles(path: Path, config: HospitalConfig) -> list[ProfileDefinition]:
+    """Charge les profils de pondération et vérifie les services référencés."""
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    profiles = [ProfileDefinition.model_validate(item) for item in raw["profiles"]]
+    identifiers = [profile.profile_id for profile in profiles]
+    if len(identifiers) != len(set(identifiers)):
+        raise ValueError("Les identifiants de profil doivent être uniques.")
+    if DEFAULT_PROFILE_ID not in identifiers:
+        raise ValueError(f"Le profil de référence {DEFAULT_PROFILE_ID} est requis.")
+    for profile in profiles:
+        weights = profile.objective_weights
+        if weights is None:
+            continue
+        unknown = (set(weights.demand_multipliers) | set(weights.staff_multipliers)) - set(config.services)
+        if unknown:
+            raise ValueError(f"Services inconnus dans {profile.profile_id}: {sorted(unknown)}")
+    return profiles
+
+
+def with_profile(config: HospitalConfig, profile: ProfileDefinition) -> HospitalConfig:
+    """Retourne une copie de la configuration avec les poids du profil."""
+    if profile.objective_weights is None:
+        return config
+    return config.model_copy(update={"objective_weights": profile.objective_weights})

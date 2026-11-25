@@ -26,10 +26,10 @@ $env:PYTHONPATH = "src"
 .\.venv\Scripts\python.exe -m hospital_planning.experiments.runner
 ```
 
-Pour comparer également les solveurs exacts sur les mêmes copies de scénario :
+Pour comparer les quatre méthodes sur les mêmes copies de scénario, avec un ou plusieurs profils de pondération :
 
 ```powershell
-.\.venv\Scripts\python.exe -m hospital_planning.experiments.runner --methods greedy milp cp_sat
+.\.venv\Scripts\python.exe -m hospital_planning.experiments.runner --methods naive greedy milp cp_sat --profiles equilibre priorite_accueil priorite_personnel
 ```
 
 Chaque expérience écrit ses entrées transformées, les artefacts par méthode, `metrics.csv` et `experiment.json` sous `results/experiments/<experiment_id>/`. Une expérience partielle conserve les méthodes terminées et leurs statuts; aucun résultat ne remplace celui d'un autre scénario.

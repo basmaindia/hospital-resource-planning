@@ -10,6 +10,8 @@ from hospital_planning.domain.enums import JobStatus, MethodStatus, PlanningPoli
 PositiveInt = Annotated[int, Field(gt=0)]
 NonNegativeInt = Annotated[int, Field(ge=0)]
 NonNegativeFloat = Annotated[float, Field(ge=0)]
+MethodName = Literal["naive", "greedy", "milp", "cp_sat"]
+DEFAULT_PROFILE_ID = "equilibre"
 
 
 class ServiceConfig(BaseModel):
@@ -63,13 +65,38 @@ class PlanningPolicyConfig(BaseModel):
 
 
 class ObjectiveWeights(BaseModel):
-    """Coefficients entiers partagés par les méthodes de planification."""
+    """Coefficients entiers partagés par les méthodes de planification.
+
+    Les multiplicateurs par service sont facultatifs : un service absent vaut 1.
+    """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
     opened_bed: NonNegativeInt
     unmet_patient_day: NonNegativeInt
     staff_target_shortage: NonNegativeInt
     workload_imbalance: NonNegativeInt
+    rejected_admission: NonNegativeInt = 0
+    demand_multipliers: dict[str, PositiveInt] = Field(default_factory=dict)
+    staff_multipliers: dict[str, PositiveInt] = Field(default_factory=dict)
+
+    def unmet_weight(self, service: str) -> int:
+        return self.unmet_patient_day * self.demand_multipliers.get(service, 1)
+
+    def rejection_weight(self, service: str) -> int:
+        return self.rejected_admission * self.demand_multipliers.get(service, 1)
+
+    def shortage_weight(self, service: str) -> int:
+        return self.staff_target_shortage * self.staff_multipliers.get(service, 1)
+
+
+class ProfileDefinition(BaseModel):
+    """Profil de pondération nommé ; sans poids propres, il reprend ceux de l'hôpital."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    profile_id: str = Field(pattern=r"^[a-z_]+$")
+    label: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+    objective_weights: ObjectiveWeights | None = None
 
 
 class HospitalConfig(BaseModel):
@@ -170,6 +197,7 @@ class ObjectiveComponents(BaseModel):
     unmet_patient_day_cost: NonNegativeFloat
     staff_target_shortage_cost: NonNegativeFloat
     workload_imbalance_cost: NonNegativeFloat
+    rejected_admission_cost: NonNegativeFloat = 0.0
     total_cost: NonNegativeFloat
 
 
@@ -179,7 +207,8 @@ class MethodResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
     experiment_id: str = Field(min_length=1)
     scenario_id: str = Field(min_length=1)
-    method_name: Literal["greedy", "milp", "cp_sat"]
+    method_name: MethodName
+    profile_id: str = DEFAULT_PROFILE_ID
     status: MethodStatus
     runtime_seconds: NonNegativeFloat
     objective_value: float | None = None
@@ -220,7 +249,8 @@ class ExperimentJobRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     scenario_ids: list[str] | None = None
-    methods: list[Literal["greedy", "milp", "cp_sat"]] = Field(default_factory=lambda: ["greedy"])
+    profile_id: str = DEFAULT_PROFILE_ID
+    methods: list[MethodName] = Field(default_factory=lambda: ["greedy"])
     seed: NonNegativeInt | None = None
     solver_time_limit_seconds: Annotated[int, Field(ge=1, le=600)] | None = None
     solver_num_workers: Annotated[int, Field(ge=1, le=64)] | None = None
@@ -241,6 +271,7 @@ class ExperimentSummary(BaseModel):
     scenario_id: str = Field(min_length=1)
     created_at: datetime
     seed: int | None = None
+    profile_id: str = DEFAULT_PROFILE_ID
     methods: list[str]
     scenario_input_hash: str = Field(min_length=1)
 

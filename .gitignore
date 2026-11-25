@@ -44,6 +44,7 @@ results/experiments/experiment-*/*
 !results/experiments/experiment-*/experiment.json
 !results/experiments/experiment-*/metrics.csv
 !results/experiments/experiment-*/scenario_inputs/
+!results/experiments/experiment-*/naive/
 !results/experiments/experiment-*/greedy/
 !results/experiments/experiment-*/milp/
 !results/experiments/experiment-*/cp_sat/
@@ -51,6 +52,11 @@ results/experiments/experiment-*/*/*
 !results/experiments/experiment-*/scenario_inputs/bed_requirements.csv
 !results/experiments/experiment-*/scenario_inputs/demand_requirements.csv
 !results/experiments/experiment-*/scenario_inputs/planning_availability.csv
+!results/experiments/experiment-*/naive/bed_allocations.csv
+!results/experiments/experiment-*/naive/method_result.json
+!results/experiments/experiment-*/naive/planning_availability.csv
+!results/experiments/experiment-*/naive/staff_assignments.csv
+!results/experiments/experiment-*/naive/staff_coverage.csv
 !results/experiments/experiment-*/greedy/bed_allocations.csv
 !results/experiments/experiment-*/greedy/method_result.json
 !results/experiments/experiment-*/greedy/planning_availability.csv
