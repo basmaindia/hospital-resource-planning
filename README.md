@@ -9,7 +9,7 @@ Les exigences de référence sont dans [specifications.md](specifications.md). L
 - Données synthétiques reproductibles pour URG, MED, REA et CHI.
 - Prévisions J+1 à J+7 avec cinq modèles et validation chronologique.
 - Instance commune de besoins opérationnels, puis stratégie naïve, Greedy, MILP/CBC et CP-SAT avec validateur indépendant et trois profils de pondération.
-- Scénarios S0 à S5, expériences persistées, API FastAPI et dashboard à neuf vues.
+- Scénarios S0 à S5, expériences persistées, API FastAPI et dashboard à dix vues, dont un simulateur de scénario personnalisé.
 
 Les allocations et comparaisons ne sont affichées que lorsqu’elles ont été effectivement générées et persistées.
 

@@ -2,7 +2,9 @@
 
 import json
 import os
+from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException, status
@@ -28,7 +30,7 @@ from hospital_planning.domain.contracts import (
     SensitivityManifestEntry,
 )
 from hospital_planning.experiments.runner import run_experiment, save_experiment
-from hospital_planning.experiments.scenarios import load_scenarios
+from hospital_planning.experiments.scenarios import CUSTOM_PREFIX, custom_definition, load_scenarios
 from hospital_planning.optimization.availability import project_planning_availability
 
 app = FastAPI(
@@ -120,6 +122,11 @@ def create_experiment_job(request: ExperimentJobRequest) -> JobResponse:
     known = {profile.profile_id for profile in get_dashboard_profiles()}
     if request.profile_id not in known:
         raise HTTPException(status_code=422, detail=f"Profil inconnu: {request.profile_id}")
+    if request.custom_scenario is not None:
+        try:
+            custom_definition(request.custom_scenario, get_hospital_config())
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
     return job_registry.submit(lambda: _run_experiment_job(request))
 
 
@@ -171,8 +178,15 @@ def get_experiment(experiment_id: str) -> dict[str, object]:
 
 
 @app.get("/api/v1/dashboard/scenario-comparison")
-def get_scenario_comparison(seed: int | None = None, profile: str = DEFAULT_PROFILE_ID) -> list[dict[str, object]]:
+def get_scenario_comparison(
+    seed: int | None = None,
+    profile: str = DEFAULT_PROFILE_ID,
+    scope: Literal["reference", "custom"] = "reference",
+) -> list[dict[str, object]]:
     """Agrège les KPI persistés d'une seule expérience par scénario, pour un profil.
+
+    `reference` ne contient que les scénarios déclarés (S0–S5) ; `custom` ne contient
+    que les simulations personnalisées, de la plus récente à la plus ancienne.
 
     Les objectifs de profils différents ne sont pas comparables : ils ne sont jamais
     mélangés dans une même réponse.
@@ -187,23 +201,32 @@ def get_scenario_comparison(seed: int | None = None, profile: str = DEFAULT_PROF
     if not root.exists():
         return []
     wanted_seed = _reference_seed() if seed is None else seed
-    selected: dict[str, tuple[bool, float, int | None, Path]] = {}
+    selected: dict[str, tuple[bool, float, ExperimentSummary, Path]] = {}
     for metadata_path in sorted(root.glob("*/experiment.json")):
         summary = _read_experiment_summary(metadata_path)
         metrics_path = metadata_path.parent / "metrics.csv"
         if summary is None or not metrics_path.is_file() or summary.profile_id != profile:
             continue
+        if summary.scenario_id.startswith(CUSTOM_PREFIX) != (scope == "custom"):
+            continue
         matches = summary.seed == wanted_seed
         if seed is not None and not matches:
             continue
-        candidate = (matches, summary.created_at.timestamp(), summary.seed, metrics_path)
+        candidate = (matches, summary.created_at.timestamp(), summary, metrics_path)
         current = selected.get(summary.scenario_id)
         if current is None or candidate[:2] > current[:2]:
             selected[summary.scenario_id] = candidate
     rows: list[dict[str, object]] = []
-    for scenario_id in sorted(selected):
-        _, _, scenario_seed, metrics_path = selected[scenario_id]
-        rows.extend(row | {"seed": scenario_seed, "profile_id": profile} for row in _metric_rows(metrics_path))
+    ordered = sorted(selected) if scope == "reference" else sorted(selected, key=lambda key: -selected[key][1])
+    for scenario_id in ordered:
+        _, _, summary, metrics_path = selected[scenario_id]
+        context = {
+            "seed": summary.seed,
+            "profile_id": profile,
+            "scenario_description": summary.scenario_description,
+            "created_at": summary.created_at.isoformat(),
+        }
+        rows.extend(row | context for row in _metric_rows(metrics_path))
     return rows
 
 
@@ -489,6 +512,7 @@ def _read_experiment_summary(metadata_path: Path) -> ExperimentSummary | None:
         return ExperimentSummary(
             experiment_id=metadata["experiment_id"],
             scenario_id=scenario["scenario_id"],
+            scenario_description=scenario.get("description", ""),
             created_at=metadata["created_at"],
             seed=metadata.get("seed"),
             profile_id=metadata.get("profile_id", DEFAULT_PROFILE_ID),
@@ -497,6 +521,42 @@ def _read_experiment_summary(metadata_path: Path) -> ExperimentSummary | None:
         )
     except (KeyError, OSError, ValueError):
         return None
+
+
+JobInputs = tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, dict[str, object]]
+
+
+def _job_inputs(root: Path) -> JobInputs:
+    """Charge les entrées communes des jobs, relues seulement si un fichier change.
+
+    L'historique de disponibilité (772 000 lignes) prend plusieurs secondes à lire :
+    le garder en mémoire rend les simulations rapides. Les méthodes travaillent sur
+    des copies, ces tables ne sont jamais modifiées.
+    """
+    files = (
+        root / "results" / "operational_instances" / "S0" / "demand_requirements.csv",
+        root / "results" / "operational_instances" / "S0" / "bed_requirements.csv",
+        root / "data" / "synthetic" / "staff.csv",
+        root / "data" / "synthetic" / "staff_availability.csv",
+        root / "results" / "operational_instances" / "S0" / "operational_instance.json",
+        hospital_config_path(),
+    )
+    return _read_job_inputs(files, tuple(path.stat().st_mtime_ns for path in files))
+
+
+@lru_cache(maxsize=1)
+def _read_job_inputs(files: tuple[Path, ...], _versions: tuple[int, ...]) -> JobInputs:
+    demand_path, beds_path, staff_path, availability_path, metadata_path, config_path = files
+    demand = pd.read_csv(demand_path, parse_dates=["date"])
+    staff = pd.read_csv(staff_path)
+    planning_availability = project_planning_availability(
+        staff,
+        pd.read_csv(availability_path, parse_dates=["date"]),
+        demand["date"],
+        load_hospital_config(config_path),
+    )
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    return demand, pd.read_csv(beds_path, parse_dates=["date"]), staff, planning_availability, metadata
 
 
 def _run_experiment_job(request: ExperimentJobRequest) -> list[str]:
@@ -513,15 +573,11 @@ def _run_experiment_job(request: ExperimentJobRequest) -> list[str]:
     if request.profile_id not in profiles:
         raise ValueError(f"Profil inconnu: {request.profile_id}")
     config = with_profile(config, profiles[request.profile_id])
-    instance_directory = root / "results" / "operational_instances" / "S0"
-    demand = pd.read_csv(instance_directory / "demand_requirements.csv", parse_dates=["date"])
-    beds = pd.read_csv(instance_directory / "bed_requirements.csv", parse_dates=["date"])
-    staff = pd.read_csv(root / "data" / "synthetic" / "staff.csv")
-    availability = pd.read_csv(root / "data" / "synthetic" / "staff_availability.csv", parse_dates=["date"])
-    metadata = json.loads((instance_directory / "operational_instance.json").read_text(encoding="utf-8"))
-    planning_availability = project_planning_availability(staff, availability, demand["date"], config)
+    demand, beds, staff, planning_availability, metadata = _job_inputs(root)
     scenarios = load_scenarios(root / "configs" / "scenarios.json", config)
-    if request.scenario_ids is not None:
+    if request.custom_scenario is not None:
+        scenarios = [custom_definition(request.custom_scenario, config)]
+    elif request.scenario_ids is not None:
         requested_ids = set(request.scenario_ids)
         scenarios = [scenario for scenario in scenarios if scenario.scenario_id in requested_ids]
         missing = requested_ids - {scenario.scenario_id for scenario in scenarios}
@@ -534,7 +590,7 @@ def _run_experiment_job(request: ExperimentJobRequest) -> list[str]:
             demand,
             beds,
             staff,
-            availability,
+            planning_availability,
             planning_availability,
             metadata,
             config,

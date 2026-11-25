@@ -245,11 +245,27 @@ class JobResponse(BaseModel):
     error_message: str | None = None
 
 
+class CustomScenarioRequest(BaseModel):
+    """Paramètres d'un scénario personnalisé du simulateur.
+
+    Sans service précisé, la hausse de demande ou la fermeture de lits s'applique
+    à tous les services.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    demand_multiplier: Annotated[float, Field(ge=1, le=2)] = 1.0
+    demand_service: str | None = None
+    absence_rate: Annotated[float, Field(ge=0, le=0.5)] = 0.0
+    closure_rate: Annotated[float, Field(ge=0, le=0.5)] = 0.0
+    closure_service: str | None = None
+
+
 class ExperimentJobRequest(BaseModel):
     """Demande de calcul explicite d'expériences de scénarios."""
 
     model_config = ConfigDict(extra="forbid")
     scenario_ids: list[str] | None = None
+    custom_scenario: CustomScenarioRequest | None = None
     profile_id: str = DEFAULT_PROFILE_ID
     methods: list[MethodName] = Field(default_factory=lambda: ["greedy"])
     seed: NonNegativeInt | None = None
@@ -263,6 +279,12 @@ class ExperimentJobRequest(BaseModel):
             raise ValueError("methods doit contenir des méthodes uniques et non vides.")
         return methods
 
+    @model_validator(mode="after")
+    def validate_single_source(self) -> "ExperimentJobRequest":
+        if self.custom_scenario is not None and self.scenario_ids is not None:
+            raise ValueError("scenario_ids et custom_scenario sont exclusifs.")
+        return self
+
 
 class ExperimentSummary(BaseModel):
     """Vue de lecture compacte d'une expérience stockée."""
@@ -270,6 +292,7 @@ class ExperimentSummary(BaseModel):
     model_config = ConfigDict(extra="forbid")
     experiment_id: str = Field(min_length=1)
     scenario_id: str = Field(min_length=1)
+    scenario_description: str = ""
     created_at: datetime
     seed: int | None = None
     profile_id: str = DEFAULT_PROFILE_ID
@@ -299,6 +322,7 @@ class ScenarioReadModel(BaseModel):
     capacity_reduction: Annotated[float, Field(ge=0, lt=1)]
     service_multipliers: dict[str, float] = Field(default_factory=dict)
     peak_days: PositiveInt | None = None
+    service_capacity_reductions: dict[str, float] = Field(default_factory=dict)
 
 
 class SensitivityManifestEntry(BaseModel):

@@ -24,7 +24,7 @@ Dernière synthèse : novembre 2026. Ce fichier décrit l’état observable du 
 - Greedy, MILP/CBC et CP-SAT avec objectif canonique et validateur indépendant.
 - Scénarios S0–S5, résultats d’expériences et manifeste de sensibilité de 80 combinaisons.
 - API FastAPI sur le port 8000 : lectures, jobs explicitement soumis et téléchargements contrôlés.
-- Dashboard sur le port 3011 : neuf vues, filtres, consultation des résultats et lancement manuel d’une méthode.
+- Dashboard sur le port 3011 : dix vues, dont le simulateur, filtres, consultation des résultats et lancement manuel d’une méthode.
 
 ## Résultats et validations confirmés
 
@@ -32,7 +32,7 @@ Dernière synthèse : novembre 2026. Ce fichier décrit l’état observable du 
 - La validation de prévision réserve le test final ; il n’intervient pas dans la sélection des modèles.
 - Les trois méthodes utilisent les mêmes conventions d’unités et les mêmes composantes d’objectif.
 - Les admissions refusées sont un KPI en patients ; la pénalité de demande est portée une seule fois par les journées-patients non soutenues.
-- Contrôles confirmés le 25 novembre 2026 : `pytest -q` (79 tests), `ruff check src tests`, `npm.cmd run typecheck` et `npm.cmd run lint`. `npm.cmd run build` et Playwright (avec Edge) ont réussi lors de l'audit, avant ces corrections.
+- Contrôles confirmés le 25 novembre 2026 : `pytest -q` (90 tests), `ruff check src tests`, `npm.cmd run typecheck` et `npm.cmd run lint`. `npm.cmd run build` et Playwright (avec Edge) ont réussi lors de l'audit, avant ces corrections.
 
 ## Jeu de démonstration pour GitHub
 
@@ -180,7 +180,7 @@ Un audit a montré que les premiers résultats de la version 2 étaient biaisés
 Graine 42, 50 s et 8 threads par solveur exact, environ 106 s par scénario et par profil (32 min pour les 72 résultats). Naïve et Greedy prennent environ 1 s au plus. Le premier passage a été perturbé par la mise en veille du PC : les 9 expériences sur 18 qui chevauchaient une veille ont été relancées sans interruption, et le journal Windows vérifié. CBC a été relancé automatiquement avec la graine 43 sur S4 priorité personnel (assertion interne avec la graine 42). Empêcher la veille pendant un recalcul : les solveurs sont limités en temps réel.
 
 ### Pistes restantes pour le groupe
-1. Simulateur de scénario personnalisé et couverture RH par service et par poste dans le dashboard.
+1. Calculer l'analyse de sensibilité (80 cas) et en afficher les courbes.
 2. Volets normatif et réglementaire (loi 09-08, confidentialité, traçabilité) à documenter explicitement.
 3. Mesurer un score d'utilisabilité (SUS) du dashboard auprès de quelques utilisateurs.
 4. Compte rendu technique et répartition de la démo entre les 6 membres.

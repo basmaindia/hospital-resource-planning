@@ -4,25 +4,29 @@ import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Annotated
 
 import numpy as np
 import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from hospital_planning.domain.contracts import HospitalConfig
+from hospital_planning.domain.contracts import CustomScenarioRequest, HospitalConfig
+
+CUSTOM_PREFIX = "CUSTOM_"
 
 
 class ScenarioDefinition(BaseModel):
     """Hypothèses d'un scénario de stress test synthétique."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
-    scenario_id: str = Field(pattern=r"^(S[0-9]_[A-Z_]+|SENS_[A-Z0-9_]+)$")
+    scenario_id: str = Field(pattern=r"^(S[0-9]_[A-Z_]+|SENS_[A-Z0-9_]+|CUSTOM_[0-9A-F]{8})$")
     description: str = Field(min_length=1)
     demand_multiplier: float = Field(ge=1)
     absence_rate: float = Field(ge=0, le=1)
     capacity_reduction: float = Field(ge=0, lt=1)
     service_multipliers: dict[str, float] = Field(default_factory=dict)
     peak_days: int | None = Field(default=None, gt=0)
+    service_capacity_reductions: dict[str, Annotated[float, Field(ge=0, lt=1)]] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_peak(self) -> "ScenarioDefinition":
@@ -59,6 +63,53 @@ def load_scenarios(path: Path, config: HospitalConfig) -> list[ScenarioDefinitio
     return scenarios
 
 
+def custom_definition(request: CustomScenarioRequest, config: HospitalConfig) -> ScenarioDefinition:
+    """Traduit les réglages du simulateur en scénario identifiable.
+
+    L'identifiant dépend seulement des réglages utiles : deux simulations identiques
+    partagent la même expérience, jamais confondue avec S0–S5.
+    """
+    for service in (request.demand_service, request.closure_service):
+        if service is not None and service not in config.services:
+            raise ValueError(f"Service inconnu: {service}")
+    raises_demand = request.demand_multiplier > 1
+    closes_beds = request.closure_rate > 0
+    demand_service = request.demand_service if raises_demand else None
+    closure_service = request.closure_service if closes_beds else None
+    parameters = [
+        request.demand_multiplier,
+        demand_service,
+        request.absence_rate,
+        request.closure_rate,
+        closure_service,
+    ]
+    identifier = hashlib.sha256(json.dumps(parameters).encode("utf-8")).hexdigest()[:8].upper()
+    return ScenarioDefinition(
+        scenario_id=f"{CUSTOM_PREFIX}{identifier}",
+        description=_custom_description(request, demand_service, closure_service),
+        demand_multiplier=1.0 if demand_service else request.demand_multiplier,
+        absence_rate=request.absence_rate,
+        capacity_reduction=0.0 if closure_service else request.closure_rate,
+        service_multipliers={demand_service: request.demand_multiplier} if demand_service else {},
+        peak_days=config.planning_horizon_days if demand_service else None,
+        service_capacity_reductions={closure_service: request.closure_rate} if closure_service else {},
+    )
+
+
+def _custom_description(
+    request: CustomScenarioRequest, demand_service: str | None, closure_service: str | None
+) -> str:
+    parts: list[str] = []
+    if request.demand_multiplier > 1:
+        parts.append(f"demande {demand_service or 'tous services'} ×{request.demand_multiplier:.2f}".replace(".", ","))
+    if request.absence_rate > 0:
+        parts.append(f"absences {request.absence_rate * 100:.0f} %")
+    if request.closure_rate > 0:
+        parts.append(f"lits fermés {closure_service or 'tous services'} {request.closure_rate * 100:.0f} %")
+    text = " · ".join(parts) or "sans perturbation (identique à S0)"
+    return text[0].upper() + text[1:]
+
+
 def apply_scenario(
     definition: ScenarioDefinition,
     demand_requirements: pd.DataFrame,
@@ -76,7 +127,7 @@ def apply_scenario(
     beds["date"] = pd.to_datetime(beds["date"])
     availability["date"] = pd.to_datetime(availability["date"])
     _apply_demand_multiplier(demand, definition)
-    _rebuild_bed_requirements(demand, beds, definition.capacity_reduction, config)
+    _rebuild_bed_requirements(demand, beds, definition, config)
     _apply_absences(availability, definition.absence_rate, seed)
     input_hash = _scenario_hash(definition, demand, beds, availability, seed)
     return ScenarioInstance(definition, demand, beds, availability, seed, input_hash)
@@ -119,13 +170,14 @@ def _apply_demand_multiplier(demand: pd.DataFrame, definition: ScenarioDefinitio
 def _rebuild_bed_requirements(
     demand: pd.DataFrame,
     beds: pd.DataFrame,
-    capacity_reduction: float,
+    definition: ScenarioDefinition,
     config: HospitalConfig,
 ) -> None:
     demand_by_key = demand.set_index(["service", "date"])["requested_admissions"]
     for service, group in beds.groupby("service", sort=False):
         ordered = group.sort_values("date")
         length_of_stay = config.services[service].length_of_stay_days
+        capacity_reduction = definition.service_capacity_reductions.get(str(service), definition.capacity_reduction)
         baseline_discharges = ordered.set_index("date")["expected_discharges"].to_dict()
         baseline_demand = ordered.set_index("date")["requested_admissions"].to_dict()
         census = int(ordered.iloc[0]["occupancy_start"])
@@ -174,7 +226,9 @@ def _scenario_hash(
     seed: int,
 ) -> str:
     digest = hashlib.sha256()
-    digest.update(definition.model_dump_json().encode("utf-8"))
+    # Un champ facultatif vide n'entre pas dans l'empreinte : les identifiants de S0–S5 restent stables.
+    excluded = set() if definition.service_capacity_reductions else {"service_capacity_reductions"}
+    digest.update(definition.model_dump_json(exclude=excluded).encode("utf-8"))
     digest.update(str(seed).encode("utf-8"))
     for table in (demand, beds, availability):
         digest.update(table.to_csv(index=False, date_format="%Y-%m-%d", lineterminator="\n").encode("utf-8"))

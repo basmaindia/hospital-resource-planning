@@ -26,7 +26,7 @@ Code : `src/hospital_planning/` ; tests : `tests/` ; config : `configs/hospital.
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install . pytest pytest-cov ruff httpx
 $env:PYTHONPATH = "src"
-.\.venv\Scripts\python.exe -m pytest -q                      # 79 tests
+.\.venv\Scripts\python.exe -m pytest -q                      # 90 tests
 .\.venv\Scripts\python.exe -m ruff check src tests
 # Régénérer la comparaison complète (≈ 32 min, PC branché et sans veille : 50 s et 8 threads par solveur exact)
 .\.venv\Scripts\python.exe -m hospital_planning.experiments.runner --methods naive greedy milp cp_sat --profiles equilibre priorite_accueil priorite_personnel
@@ -46,6 +46,8 @@ Après une modification Python avec une installation non éditable : `pip instal
 - `demand_config_hash` exclut solveurs, politique et poids : les modifier ne périme ni les prévisions ni l'instance S0.
 - `scenario-comparison` retient le profil `equilibre` et la graine de référence (`random_seed`) ; `?profile=` et `?seed=` pour d'autres.
   Ne jamais mélanger les objectifs de deux profils ; une expérience par profil (suffixe de l'identifiant).
+- Simulations `CUSTOM_…` : locales (ignorées par Git), `?scope=custom`, jamais comptées avec S0–S5.
+  Un champ ajouté à `ScenarioDefinition` ne doit pas entrer dans `_scenario_hash` quand il est vide (identifiants S0–S5).
 - Équité : agents présents au moins une fois sur l'horizon seulement (métrique, validateur, MILP et CP-SAT alignés).
 - Le hash d'instance (`_scenario_hash`) force `lineterminator="\n"` : sinon l'ID d'expérience change selon l'OS.
 - `save_experiment` **fusionne** les méthodes d'une même instance : relancer une méthode ne supprime pas les autres.

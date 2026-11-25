@@ -11,6 +11,10 @@
 | `S4_COMBINED_CRISIS` | admissions × 1,25 et 15 % d'absences supplémentaires |
 | `S5_BED_CLOSURE` | capacité opérationnelle × 0,90, arrondie à l'entier inférieur |
 
+## Scénarios personnalisés
+
+Le simulateur crée des scénarios `CUSTOM_<8 caractères>` avec les mêmes transformations, la même graine et le même validateur que S0–S5. Le champ facultatif `service_capacity_reductions` permet de ne fermer les lits que d'un service ; vide, il n'entre pas dans l'empreinte et les identifiants de S0–S5 ne changent pas.
+
 ## Reproductibilité et immutabilité
 
 Chaque scénario copie les tables de demande, lits et disponibilités de S0 avant toute transformation. Il enregistre la graine, sa définition et l'empreinte SHA-256 de ses entrées. Les absences sont sélectionnées par `numpy.random.default_rng(seed)` parmi les professionnels ayant au moins un créneau disponible, puis ne retirent que leurs créneaux initialement vrais : un scénario ne peut donc jamais augmenter une disponibilité. Les fermetures ne peuvent jamais augmenter une capacité.

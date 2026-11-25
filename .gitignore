@@ -87,3 +87,5 @@ data/processed/*
 *-pulp.mst
 *-pulp.sol
 *.tsbuildinfo
+# Simulations personnalisées : propres à chaque poste, jamais versionnées.
+results/experiments/experiment-custom_*/

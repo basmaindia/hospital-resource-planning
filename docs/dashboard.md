@@ -4,7 +4,7 @@
 
 Le dashboard Next.js présente les résultats déjà calculés du prototype sur des données exclusivement synthétiques. Les lectures ne génèrent ni donnée ni solveur. La vue Expériences peut toutefois soumettre explicitement un job après action de l’utilisateur ; aucune soumission ne survient au chargement.
 
-Neuf vues sont disponibles dans une navigation latérale : les huit prévues par le cahier des charges et la comparaison des scénarios.
+Dix vues sont disponibles dans une navigation latérale : les huit prévues par le cahier des charges, la comparaison des scénarios et le simulateur.
 
 1. vue d’ensemble ;
 2. comparaison des scénarios (toutes les méthodes sur S0–S5) ;
@@ -13,8 +13,9 @@ Neuf vues sont disponibles dans une navigation latérale : les huit prévues par
 5. allocation des ressources ;
 6. comparaison des méthodes ;
 7. scénarios ;
-8. analyse de sensibilité ;
-9. expériences et export.
+8. simulateur de scénario personnalisé ;
+9. analyse de sensibilité ;
+10. expériences et export.
 
 Le dashboard ne contient aucune série de prévision, allocation, KPI ou paramètre de scénario codé en dur. Il lit les artefacts persistés via l'API. Si une phase productrice n'a pas généré l'artefact requis, la vue concernée affiche un état vide explicite ; elle ne présente pas d'exemple comme un résultat calculé.
 
@@ -53,6 +54,14 @@ Le manifeste de sensibilité contient 80 instances et 160 appels exacts potentie
 - La vue Méthodes compare les KPI seulement lorsque plusieurs méthodes sont présentes dans une même expérience ; sinon elle explique comment obtenir une comparaison valide.
 - La vue Expériences soumet explicitement un job, suit son état, recharge le registre après `COMPLETED`, affiche ses KPI et propose les exports existants.
 - La vue Sensibilité lit le manifeste réel, son volume et son coût exact estimé, mais ne dessine aucun résultat avant une exécution explicitement persistée.
+
+## Simulateur
+
+La vue Simulateur règle un multiplicateur de demande (×1 à ×2), un taux d'absence (0 à 50 %), une part de lits fermés (0 à 50 %), les services concernés, le profil et les méthodes. Naïve et Greedy sont cochées par défaut (quelques secondes ; environ 5 s au premier lancement, le temps de lire les données). MILP et CP-SAT sont en option, avec leur durée affichée, calculée depuis le budget configuré.
+
+Le résultat est affiché à côté de S0, pour le même profil et la même méthode : refus, couverture de la demande, déficit RH et postes cibles couverts. Si un plan ne respecte pas les contraintes, ses écarts sont remplacés par « non comparable ». Une alerte prévient quand la fermeture dépasse ce que permettent les patients déjà présents.
+
+Les simulations sont enregistrées sous un identifiant `CUSTOM_…` qui dépend seulement des réglages : relancer les mêmes réglages complète la même expérience. Elles ne comptent jamais dans les indicateurs, le graphique ou le classement S0–S5 de la vue Comparaison, où elles ont leur propre tableau. On les retrouve aussi dans le filtre Scénario (groupe « Personnalisés »). Elles restent locales : Git les ignore.
 
 ## Interactions disponibles
 
@@ -95,7 +104,7 @@ npm.cmd run lint
 npm.cmd run build
 ```
 
-Le test navigateur `frontend/tests/dashboard.spec.ts` couvre l’ouverture de huit des neuf vues (toutes sauf Comparaison scénarios), le filtre Service et l’absence de calcul automatique pendant la navigation. Il ne contrôle pas les données affichées. Installer Chromium une seule fois, puis l’exécuter sur un poste local autorisant `localhost` :
+Le test navigateur `frontend/tests/dashboard.spec.ts` couvre l’ouverture de huit des dix vues (toutes sauf Comparaison scénarios et Simulateur), le filtre Service et l’absence de calcul automatique pendant la navigation. Il ne contrôle pas les données affichées. Installer Chromium une seule fois, puis l’exécuter sur un poste local autorisant `localhost` :
 
 ```powershell
 Set-Location frontend

@@ -12,7 +12,7 @@ L'API FastAPI est versionnée sous `/api/v1`. Les lectures de configuration, job
 | `GET /api/v1/experiments/{experiment_id}` | métadonnées et KPI | lecture d'artefacts stockés |
 | `GET /api/v1/experiments/{experiment_id}/downloads/{artifact_path}` | fichier | téléchargement contrôlé d'un artefact existant |
 | `GET /api/v1/dashboard/scenarios` | scénarios configurés | lecture de `configs/scenarios.json` |
-| `GET /api/v1/dashboard/scenario-comparison` | KPI d'une expérience par scénario pour un profil (`?profile=`, `equilibre` par défaut ; graine de référence, ou `?seed=` explicite) | lecture d'artefacts stockés |
+| `GET /api/v1/dashboard/scenario-comparison` | KPI d'une expérience par scénario pour un profil (`?profile=`, `equilibre` par défaut ; graine de référence, ou `?seed=` explicite ; `?scope=custom` pour les simulations, jamais mélangées à S0–S5) | lecture d'artefacts stockés |
 | `GET /api/v1/dashboard/profiles` | profils de pondération et leurs poids | lecture de `configs/profiles.json` |
 | `GET /api/v1/dashboard/sensitivity/manifest` | grille déclarative de sensibilité | lecture de `results/experiments/sensitivity_manifest.csv` |
 | `GET /api/v1/dashboard/forecasts` | prévisions finales et métriques | lecture de `results/forecasts/` |
@@ -49,6 +49,7 @@ Les artefacts historiques peuvent référencer leurs fichiers soit par chemin ab
 
 Les endpoints `dashboard` sont strictement passifs. Ils n'appellent ni générateur, ni prévision, ni solveur. Chaque réponse contient une provenance avec le chemin relatif de l'artefact, un identifiant de source et, lorsqu'ils existent, l'horodatage, la graine et l'empreinte de configuration.
 
+- `custom_scenario` (exclusif de `scenario_ids`) lance une simulation : `demand_multiplier` (1 à 2), `demand_service`, `absence_rate` (0 à 0,5), `closure_rate` (0 à 0,5), `closure_service`. Un service inconnu ou une valeur hors bornes donne 422.
 - `forecasts` expose les 140 prévisions finales (dont 28 sélectionnées) et les métriques chronologiques ; `yhat` reste une valeur continue en patients/jour.
 - `operational` expose les admissions demandées et besoins de lits avant allocation.
 - `operational/S0_BASELINE` résout l'artefact nominal historique `results/operational_instances/S0/`; il ne recalcule pas l'instance et conserve donc la même provenance de données.
