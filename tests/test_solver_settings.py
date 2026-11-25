@@ -1,7 +1,9 @@
 """Budget configurable, borne, gap et statut réellement prouvé des solveurs exacts."""
 
 import json
+from pathlib import Path
 
+import pulp
 import pytest
 from fastapi import HTTPException
 from pydantic import ValidationError
@@ -9,7 +11,12 @@ from pydantic import ValidationError
 from hospital_planning.api.app import get_dashboard_allocation
 from hospital_planning.config.loader import with_solver_settings
 from hospital_planning.domain.contracts import ExperimentJobRequest, HospitalConfig
-from hospital_planning.optimization.exact import _cbc_best_bound, _cbc_search_completed, _relative_gap
+from hospital_planning.optimization.exact import (
+    _cbc_best_bound,
+    _cbc_search_completed,
+    _relative_gap,
+    _solve_with_cbc,
+)
 
 TIME_LIMIT_LOG = """
 Cbc0010I After 100 nodes, 9 on tree, -1239000 best solution, best possible -1263000.5 (9.1 seconds)
@@ -78,6 +85,33 @@ def test_default_budget_keeps_a_scenario_under_two_minutes(hospital_config: Hosp
     margin_seconds = 20  # construction des modèles, Greedy, validation et écriture
     budget = hospital_config.planning_policy.solver_time_limit_seconds * exact_solvers
     assert budget + margin_seconds <= 120
+
+
+def test_cbc_crash_is_retried_with_another_seed_within_the_budget(
+    monkeypatch, hospital_config: HospitalConfig
+) -> None:
+    calls: list[dict[str, object]] = []
+
+    class FakeModel:
+        def solve(self, solver: object) -> str:
+            calls.append(solver.optionsDict | {"timeLimit": solver.timeLimit})
+            if len(calls) == 1:
+                raise pulp.PulpSolverError("assertion interne de CLP")
+            Path(solver.optionsDict["logPath"]).write_text("journal", encoding="utf-8")
+            return "stats"
+
+    config = with_solver_settings(hospital_config, time_limit_seconds=20)
+
+    assert _solve_with_cbc(FakeModel(), config) == ("stats", "journal", config.random_seed + 1)
+    assert [call["randomSeed"] for call in calls] == [config.random_seed, config.random_seed + 1]
+    assert all(call["timeLimit"] <= 20 for call in calls)
+
+    class AlwaysCrashing:
+        def solve(self, solver: object) -> str:
+            raise pulp.PulpSolverError("assertion interne de CLP")
+
+    with pytest.raises(pulp.PulpSolverError):
+        _solve_with_cbc(AlwaysCrashing(), config)
 
 
 def test_method_without_solution_is_reported_as_absent(monkeypatch, tmp_path) -> None:

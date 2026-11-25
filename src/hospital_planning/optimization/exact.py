@@ -77,18 +77,7 @@ def run_milp(
     model += objective
     # Pas de solution initiale Greedy : CBC restait bloqué dessus et rendait
     # exactement la baseline, ce qui rendait la comparaison sans objet.
-    with TemporaryDirectory(prefix="hospital-cbc-") as log_directory:
-        log_path = Path(log_directory) / "cbc.log"
-        stats = model.solve(
-            pulp.COIN_CMD(
-                msg=False,
-                timeLimit=config.planning_policy.solver_time_limit_seconds,
-                threads=config.planning_policy.solver_num_workers,
-                randomSeed=config.random_seed,
-                logPath=str(log_path),
-            )
-        )
-        log = log_path.read_text(encoding="utf-8", errors="replace")
+    stats, log, solver_seed = _solve_with_cbc(model, config)
     native_status = stats.status_str
     if not stats.has_solution:
         return _empty_result("milp", native_status, perf_counter() - started_perf, instance_metadata, config)
@@ -117,6 +106,7 @@ def run_milp(
         config,
         best_bound,
         bed_requirements,
+        solver_seed,
     )
 
 
@@ -175,6 +165,7 @@ def run_cp_sat(
         config,
         float(solver.best_objective_bound),
         bed_requirements,
+        config.random_seed,
     )
 
 
@@ -342,6 +333,38 @@ _CBC_INCOMPLETE_MARKERS = (
     "Partial search",
     "LP relaxation is infeasible or too expensive",
 )
+
+
+def _solve_with_cbc(model: object, config: HospitalConfig, attempts: int = 4) -> tuple[object, str, int]:
+    """Lance CBC et retourne ses statistiques, son journal et la graine utilisée.
+
+    Certaines instances déclenchent une assertion interne de CBC (CLP), selon sa
+    graine. Le processus s'arrête alors sans solution : on relance avec la graine
+    suivante, dans le temps restant, pour ne jamais dépasser le budget configuré.
+    """
+    import pulp
+
+    deadline = perf_counter() + config.planning_policy.solver_time_limit_seconds
+    for attempt in range(attempts):
+        solver_seed = config.random_seed + attempt
+        with TemporaryDirectory(prefix="hospital-cbc-") as log_directory:
+            log_path = Path(log_directory) / "cbc.log"
+            try:
+                stats = model.solve(
+                    pulp.COIN_CMD(
+                        msg=False,
+                        timeLimit=max(int(deadline - perf_counter() + 0.5), 1),
+                        threads=config.planning_policy.solver_num_workers,
+                        randomSeed=solver_seed,
+                        logPath=str(log_path),
+                    )
+                )
+            except pulp.PulpSolverError:
+                if attempt == attempts - 1 or perf_counter() >= deadline:
+                    raise
+                continue
+            return stats, log_path.read_text(encoding="utf-8", errors="replace"), solver_seed
+    raise AssertionError("Aucune tentative CBC exécutée.")
 
 
 def _cbc_search_completed(log: str) -> bool:
@@ -724,6 +747,7 @@ def _finalize_result(
     config: HospitalConfig,
     best_bound: float | None,
     bed_requirements: pd.DataFrame,
+    solver_seed: int,
 ) -> ExactResult:
     del started_at
     report, coverage = validate_solution(
@@ -744,6 +768,7 @@ def _finalize_result(
         config,
         planning_availability,
         best_bound,
+        solver_seed,
     )
 
 
@@ -761,6 +786,7 @@ def _result_from_artifacts(
     config: HospitalConfig,
     planning_availability: pd.DataFrame,
     best_bound: float | None,
+    solver_seed: int,
 ) -> ExactResult:
     required_occupancy = int(bed_allocations["occupancy_required"].sum())
     supported_occupancy = int(bed_allocations["occupancy_end"].sum())
@@ -788,6 +814,7 @@ def _result_from_artifacts(
         objective_components=components,
         best_bound=best_bound,
         optimality_gap=_relative_gap(components.total_cost, best_bound),
+        solver_seed=solver_seed,
         solver_time_limit_seconds=config.planning_policy.solver_time_limit_seconds,
         solver_num_workers=config.planning_policy.solver_num_workers,
         unmet_demand_patient_days=unmet_patient_days,

@@ -30,6 +30,7 @@ Chaque `method_result.json` et chaque ligne de `metrics.csv` conserve le budget 
 - **MILP/CBC** démarre sans solution initiale. Avec la solution Greedy en *warm start*, CBC n'en sortait pas et rendait exactement la baseline.
 - **CP-SAT** reçoit la solution Greedy comme indice (*hint*), puis cherche en parallèle sur plusieurs threads.
 - `best_bound` est la meilleure borne inférieure prouvée. Pour CBC, elle est lue dans son journal (« best possible ») et corrigée du terme constant de l'objectif. `optimality_gap = (objectif − borne) / objectif`.
+- CBC peut s'arrêter sur une assertion interne (bibliothèque CLP) selon sa graine, par exemple S4 avec le profil `priorite_personnel` et la graine 42. Il est alors relancé avec la graine suivante, dans le temps restant ; `solver_seed` enregistre la graine réellement utilisée.
 - `OPTIMAL` n'est déclaré pour CBC que si sa recherche est terminée. Interrompu au nœud racine, CBC peut annoncer « Optimal solution found » pour une simple solution courante : ce cas est enregistré `FEASIBLE` / `OptimalNotProven`.
 
 La recherche parallèle limitée par le temps n'est pas strictement déterministe : relancer CP-SAT peut donner une valeur légèrement différente. Greedy reste déterministe.

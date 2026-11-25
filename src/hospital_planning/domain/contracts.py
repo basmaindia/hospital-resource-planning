@@ -217,6 +217,7 @@ class MethodResult(BaseModel):
     optimality_gap: NonNegativeFloat | None = None
     solver_time_limit_seconds: PositiveInt | None = None
     solver_num_workers: PositiveInt | None = None
+    solver_seed: NonNegativeInt | None = None
     unmet_demand_patient_days: NonNegativeInt | None = None
     rejected_admissions: NonNegativeInt | None = None
     staff_shortage_total: NonNegativeInt | None = None
