@@ -1,0 +1,10 @@
+# Version remplacee, conservee localement seulement.
+_ancienne_version/
+# Fichiers produits par LaTeX.
+*.aux
+*.log
+*.toc
+*.lof
+*.lot
+*.out
+*.synctex.gz

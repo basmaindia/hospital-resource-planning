@@ -1,0 +1,189 @@
+\chapter{Tests, Validation et Analyse des Résultats}
+\label{ch:tests_validation_resultats}
+
+La valeur d'un outil d'aide à la décision dépend de la confiance que l'on peut accorder à ses résultats, et de la clarté avec laquelle il en montre les limites.
+
+Ce chapitre présente les tests, la validation des prévisions, la comparaison des quatre méthodes sur six scénarios et trois profils, l'arbitrage entre accueil et personnel, l'analyse de sensibilité, puis les limites. Tous les tableaux de résultats sont générés depuis le dossier \texttt{results/}.
+
+% ------------------------------------------------------------------------------
+\section{Protocole de Validation et Tests}
+% ------------------------------------------------------------------------------
+
+\subsection{Protocole Expérimental}
+L'évaluation comprend trois campagnes :
+\begin{enumerate}
+    \item \textbf{Prévision} : cinq modèles, \NbPrevVal{} prévisions de validation et \NbPrevTest{} prévisions de test par service ;
+    \item \textbf{Comparaison des méthodes} : 6 scénarios $\times$ 3 profils $\times$ 4 méthodes, soit 72 plans, avec la même instance pour les quatre méthodes d'un scénario. Chaque solveur dispose de \TempsSolveur{} secondes et de \ThreadsSolveur{} threads ;
+    \item \textbf{Sensibilité} : \NbCas{} cas, croisant 5 niveaux d'absence (0, 5, 10, 15 et 20\,\%), 4 niveaux de demande ($\times 1$, $\times 1{,}25$, $\times 1{,}5$, $\times 2$) et 4 niveaux de fermeture (0, 5, 10 et 20\,\%), calculés avec Naïve et Greedy, profil équilibré.
+\end{enumerate}
+
+\subsection{Tests Automatisés}
+Le projet compte \NbTestsPython{} tests Python et \NbTestsNavigateur{} parcours Playwright (tableau~\ref{tab:tests}).
+
+\input{tables/tests}
+
+Les tests du validateur lui soumettent notamment des plans volontairement incorrects. Les parcours Playwright utilisent une copie des résultats : ils ne modifient pas les expériences du projet.
+
+% ------------------------------------------------------------------------------
+\section{Validation des Prévisions}
+% ------------------------------------------------------------------------------
+
+\input{tables/previsions_validation}
+
+\begin{figure}[H]
+    \centering
+    \captureimg{model_comparison}
+    \caption{Comparaison du WAPE de validation des cinq modèles par service.}
+    \label{fig:model_comparison}
+\end{figure}
+
+La régression à retards a la plus faible erreur de validation dans les quatre services : \WapeValUrg{} aux Urgences, \WapeValMed{} en Médecine, \WapeValRea{} en Réanimation et \WapeValChi{} en Chirurgie. L'avance sur le lissage exponentiel est très faible aux Urgences et en Médecine ; elle est nette en Chirurgie, dont l'activité dépend du jour de la semaine. En Réanimation, les faibles volumes rendent l'erreur relative élevée.
+
+\input{tables/previsions_horizon}
+
+L'erreur ne croît pas régulièrement avec l'horizon (tableau~\ref{tab:previsions_horizon}), mais chaque valeur ne repose que sur 12 prévisions.
+
+\subsection{Test Final}
+\input{tables/previsions_test}
+
+Sur le test final, jamais utilisé pour choisir, la régression n'est la meilleure qu'aux Urgences. La moyenne mobile fait mieux en Médecine et en Réanimation, le naïf saisonnier en Chirurgie, avec des écarts limités. La sélection n'a pas été modifiée après coup, ce qui aurait invalidé ce test. Avec \NbPrevTest{} prévisions par service, ces écarts doivent être lus avec prudence.
+
+% ------------------------------------------------------------------------------
+\section{Comparaison des Quatre Méthodes}
+% ------------------------------------------------------------------------------
+
+\subsection{Respect des Contraintes et Temps de Calcul}
+Les 72 plans respectent toutes les contraintes dures selon le validateur. Le tableau~\ref{tab:performances} résume les temps et les gaps.
+
+\input{tables/performances}
+
+Naïve et Greedy répondent en moins de deux secondes. Les solveurs utilisent presque toujours leur budget entier ; le temps mesuré inclut aussi la construction du modèle et le contrôle du résultat, d'où des valeurs supérieures à \TempsSolveur{} secondes. Un seul cas est prouvé optimal, par les deux solveurs : $S_3$ avec la priorité accueil. Les autres plans des solveurs sont des solutions réalisables, sans preuve d'optimalité.
+
+\subsection{Profil Équilibré}
+\input{tables/resultats_equilibre}
+
+Avec le profil équilibré, la meilleure méthode améliore l'objectif de Greedy de \GainMinEq{} à \GainMaxEq{}. CP-SAT est la meilleure dans cinq scénarios ; MILP l'emporte en $S_4$, avec un écart de 10 points sur l'objectif. La stratégie naïve est plus coûteuse que Greedy dans tous les cas ; sur les trois profils, l'écart va de \NaiveMin{} à \NaiveMax{}.
+
+Le déficit RH représente \PartRhMin{} à \PartRhMax{} de l'objectif selon le plan (tableau~\ref{tab:parts_objectif}). L'objectif équilibré mesure donc surtout la tension sur le personnel.
+
+\input{tables/parts_objectif}
+
+\subsection{Profil Priorité Accueil}
+\input{tables/resultats_priorite_accueil}
+
+MILP et CP-SAT atteignent le même objectif dans les six scénarios, avec un gap d'au plus \GapMaxAccueilMilp{} pour MILP et \GapMaxAccueilCp{} pour CP-SAT. Ils refusent autant de patients que Greedy : les refus restants sont \textbf{imposés par les lits}. Le gain (\GainMinAcc{} à \GainMaxAcc{}) vient d'une meilleure affectation du personnel, à accueil égal. Ce profil est le seul où le budget suffit à conclure presque exactement.
+
+\subsection{Profil Priorité Personnel}
+\input{tables/resultats_priorite_personnel}
+
+CP-SAT est la meilleure méthode dans les six scénarios (gain de \GainMinPer{} à \GainMaxPer{}). MILP est peu fiable sous ce profil : il est moins bon que Greedy en $S_0$ (\MilpPerSz{}) et en $S_3$ (\MilpPerSt{}), avec des gaps de \GapMilpPerSz{} et \GapMilpPerSt{} et jusqu'à \RefusMilpPerSt{} refus. Dans ces deux cas, son plan est une solution intermédiaire, pas une recommandation.
+
+\subsection{Synthèse}
+\input{tables/meilleures_methodes}
+
+\begin{figure}[H]
+    \centering
+    \captureimg{comparaison_scenarios}
+    \caption{Vue Comparaison scénarios : méthodes et scénarios côte à côte.}
+    \label{fig:comparaison}
+\end{figure}
+
+CP-SAT est la meilleure méthode, ou ex æquo, dans \NbCpMeilleur{} cas sur 18. Greedy reste une référence solide : calculée en moins de deux secondes, elle n'est améliorée que de \GainMinAcc{} à \GainMaxPer{} selon le cas.
+
+% ------------------------------------------------------------------------------
+\section{Arbitrage entre Accueil et Personnel}
+% ------------------------------------------------------------------------------
+
+\input{tables/arbitrage}
+
+Le tableau~\ref{tab:arbitrage} est le résultat central du projet. Par rapport à Greedy, CP-SAT réduit le déficit RH :
+\begin{itemize}
+    \item de \DeficitCpMinAcc{} à \DeficitCpMaxAcc{} avec la priorité accueil, \textbf{sans aucun refus supplémentaire} ;
+    \item de \DeficitCpMinEq{} à \DeficitCpMaxEq{} avec le profil équilibré, au prix de quelques refus (\RefusCpEqSz{} contre \RefusSzGreedy{} en $S_0$) ;
+    \item de \DeficitCpMinPer{} à \DeficitCpMaxPer{} avec la priorité personnel, au prix de refus nettement plus nombreux (\RefusCpPerSz{} contre \RefusSzGreedy{} en $S_0$, \RefusCpPerSq{} contre \RefusGreedySq{} en $S_4$).
+\end{itemize}
+
+Un meilleur objectif n'est donc pas toujours un meilleur accueil. Les refus supplémentaires s'expliquent en grande partie par l'effet de palier décrit au chapitre~\ref{ch:conception_systeme} : refuser un patient permet de rester sous le seuil qui déclenche de nouveaux postes cibles. Le choix du profil relève de la direction de l'établissement, pas du solveur.
+
+\subsection{Lecture par Scénario}
+\begin{itemize}
+    \item \textbf{$S_0$ -- nominal} : Greedy accepte \CouvDemSzGreedy{} de la demande (\RefusSzGreedy{} refus), mais ne couvre que \CouvSzGreedy{} des postes cibles ;
+    \item \textbf{$S_1$ -- pic aux urgences} : \RefusGreedySu{} refus avec Greedy, le déficit RH augmente peu (\DeficitGreedySu{} contre \DeficitSzGreedy{}) ;
+    \item \textbf{$S_2$ -- hausse générale} : les lits deviennent limitants, avec \RefusGreedySd{} refus ;
+    \item \textbf{$S_3$ -- absences} : \AbsentsSt{} agents retirés. Les refus ne changent pas (\RefusGreedySt{}), mais la couverture RH baisse à \CouvGreedySt{} ;
+    \item \textbf{$S_4$ -- crise combinée} : autant de refus que $S_2$ pour Greedy (\RefusGreedySq{}) et couverture RH de \CouvGreedySq{} ; \SaturesSq{} couples service-jour sont saturés ;
+    \item \textbf{$S_5$ -- fermeture de lits} : \RefusGreedySc{} refus, mais le déficit RH baisse (\DeficitGreedySc{}), car moins de lits demandent moins de postes.
+\end{itemize}
+
+\subsection{Couverture RH par Service}
+\input{tables/couverture_s0}
+
+La couverture est très inégale (tableau~\ref{tab:couverture_s0}). Greedy sert d'abord la Réanimation (\CouvSzGreedyRea{}) et laisse la Médecine à \CouvSzGreedyMed{}. MILP, avec le profil équilibré, descend aux Urgences à \CouvSzMilpUrg{} ; avec la priorité accueil, il y remonte à \CouvSzMilpUrgAccueil{}. Dans le plan équilibré de CP-SAT, la nuit aux Urgences ne couvre que \CouvNuitInfUrgCp{} des postes infirmiers cibles. Un taux global ne suffit donc pas : la vue Allocation est nécessaire pour lire un plan.
+
+% ------------------------------------------------------------------------------
+\section{Analyse de Sensibilité (Grille de 80 Cas)}
+% ------------------------------------------------------------------------------
+
+La grille donne \NbResSens{} résultats (\NbCas{} cas, Naïve et Greedy). \NbResSensOk{} respectent toutes les contraintes ; les \NbResSensKo{} autres correspondent tous à une fermeture de 20\,\% des lits. Le seuil vient de la Médecine : au-delà d'environ \LimiteMed{} de lits fermés, les patients déjà présents le premier jour dépassent les lits restants, quelle que soit la méthode. La liste complète figure en annexe C.
+
+\begin{figure}[H]
+    \centering
+    \captureimg{sensibilite}
+    \caption{Vue Sensibilité : effet des absences et de la demande.}
+    \label{fig:sensibilite}
+\end{figure}
+
+\subsection{Effet sur les Postes Couverts}
+\input{tables/sensibilite_couverture}
+
+Avec Greedy, la couverture passe de \SensCouvBase{} à \SensCouvAbs{} lorsque 20\,\% du personnel s'absente, et à \SensCouvPire{} si la demande double en même temps. La demande pèse moins que les absences au-delà de $\times 1{,}25$, car les lits saturés limitent l'activité.
+
+\input{tables/sensibilite_methodes}
+
+La stratégie naïve suit la même pente, plus bas : de \SensNaiveBase{} à \SensNaiveAbs{}.
+
+\subsection{Effet sur les Refus}
+\input{tables/sensibilite_refus}
+
+Les refus de Greedy passent de \SensRefusBase{} à \SensRefusVc{} ($\times 1{,}25$), \SensRefusCq{} ($\times 1{,}5$) et \SensRefusDx{} ($\times 2$). Les absences n'ont aucun effet sur ce nombre, puisque Greedy accepte selon les seuls lits : c'est la couverture RH qui se dégrade. À l'inverse, fermer 10\,\% des lits porte les refus à \SensRefusFermee{} et fait \emph{monter} la couverture RH à \SensCouvFermee{}. Cette hausse ne traduit pas un meilleur fonctionnement : moins de patients sont accueillis.
+
+Ces résultats ne concernent que Naïve et Greedy ; les solveurs n'ont pas été exécutés sur la grille.
+
+% ------------------------------------------------------------------------------
+\section{Discussion, Limites et Perspectives}
+% ------------------------------------------------------------------------------
+
+\subsection{Apports du Prototype}
+Le prototype relie prévision, lits et personnel dans un même modèle ; compare quatre méthodes sur des instances identiques ; contrôle chaque plan de façon indépendante ; et rend visible l'arbitrage entre accueil et personnel, par les profils, la vue Allocation et le simulateur.
+
+\subsection{Limites}
+\label{sec:limites}
+\begin{enumerate}
+    \item \textbf{Sous-effectif structurel} : en $S_0$, Greedy couvre \CouvSzGreedy{} des postes cibles. Les lits ouverts par Greedy demandent \CibleSz{} postes sur la semaine, alors que \NbAgents{} agents à \PostesMax{} postes en offrent au plus \CapacitePostes{}, soit \PlafondSz{} de cette cible, avant toute absence. Il faudrait environ \AgentsCent{} agents pour la couvrir. CP-SAT dépasse légèrement ce taux (\CouvSzCp{}) parce qu'il ouvre moins de lits et abaisse donc sa propre cible. Les écarts entre méthodes portent donc sur la répartition d'une pénurie. Nous assumons cette situation comme celle d'un hôpital en tension ; un recalibrage des effectifs ou des cibles est une perspective, étudiée dans \texttt{docs/staffing\_calibration.md} et \textbf{non appliquée} ;
+    \item \textbf{Qualifications en deux viviers} : \VivierA{} agents ne peuvent travailler qu'aux Urgences ou en Chirurgie, \VivierB{} qu'en Réanimation ou en Médecine. Le générateur donne à un agent sur deux une seule qualification, toujours Chirurgie ou Réanimation : la Médecine représente \PartCibleMed{} de la cible en $S_0$, mais \QualifMed{} seulement des agents y sont qualifiés. Aucun renfort entre les deux viviers n'est possible ;
+    \item \textbf{Frontières de l'horizon} : les postes de la veille ne sont pas connus, donc le repos avant le premier jour et les nuits déjà enchaînées ne sont pas contrôlés. En fin d'horizon, refuser un patient le dernier jour ne coûte qu'une journée-patient, quelle que soit sa durée de séjour ;
+    \item \textbf{Pas de contrainte d'heures} : la charge est limitée en nombre de postes ; les heures contractuelles et supplémentaires ne sont pas modélisées ;
+    \item \textbf{Poids choisis par l'équipe} : les trois profils sont des hypothèses, non validées par des professionnels. D'autres poids donneraient d'autres plans ;
+    \item \textbf{Non-déterminisme de CP-SAT} : à graine égale, un nouveau calcul peut donner un plan différent. Les écarts faibles entre solveurs ne doivent pas être surinterprétés. CBC, lui aussi limité en temps, dépend de la machine ;
+    \item \textbf{Optimalité rarement prouvée} : un seul cas sur 18 l'est, pour chaque solveur ; avec la priorité personnel, MILP peut être moins bon que Greedy ;
+    \item \textbf{Simplifications} : durée de séjour fixe, occupation journalière, cibles identiques dans tous les services et à toute heure, aucun transfert entre services ;
+    \item \textbf{Données synthétiques} : les erreurs de prévision et les résultats ne se transposent pas à un hôpital réel ;
+    \item \textbf{Prévision ponctuelle} : le plan ne tient pas compte de l'incertitude ;
+    \item \textbf{Sécurité et usage} : pas d'authentification, pas d'intégration au SIH, utilisabilité non mesurée.
+\end{enumerate}
+
+\subsection{Perspectives d'Évolution}
+\begin{itemize}
+    \item recalibrer les effectifs ou les cibles, et corriger la génération des qualifications ;
+    \item enchaîner les semaines, pour contrôler les frontières de l'horizon ;
+    \item ajouter heures contractuelles et préférences du personnel ;
+    \item prendre en compte l'incertitude des prévisions dans le plan ;
+    \item fixer les poids avec des professionnels et tester l'outil avec eux ;
+    \item authentifier les utilisateurs et lire les données par HL7 FHIR.
+\end{itemize}
+
+% ------------------------------------------------------------------------------
+\section*{Conclusion du Chapitre}
+\addcontentsline{toc}{section}{Conclusion du Chapitre}
+% ------------------------------------------------------------------------------
+Les \NbTestsPython{} tests Python et les \NbTestsNavigateur{} parcours de navigateur encadrent le prototype, et les 72 plans respectent les contraintes dures. CP-SAT est la méthode la plus régulière, MILP l'égale avec la priorité accueil, et Greedy fournit une bonne réponse immédiate. Surtout, les résultats montrent que le profil choisi déplace l'effort entre les patients et le personnel, dans un hôpital dont l'effectif ne couvre qu'environ la moitié de sa cible.

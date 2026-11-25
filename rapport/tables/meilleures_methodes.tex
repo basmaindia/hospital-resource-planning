@@ -1,0 +1,35 @@
+% Généré par rapport/scripts/generate_tables.py : ne pas modifier à la main.
+\begin{table}[H]
+    \centering
+    \caption{Meilleure méthode par profil et par scénario.}
+    \label{tab:meilleures_methodes}
+    \small
+    \begin{tabular}{lclccc}
+        \toprule
+        \textbf{Profil} &  & \textbf{Meilleure méthode} & \textbf{Gain vs Greedy} & \textbf{Refus (Greedy)} & \textbf{Déficit RH (Greedy)} \\
+        \midrule
+        \multirow{6}{*}{Équilibré} & $S_0$ & CP-SAT & $-$5{,}0\,\% & 9 (4) & 1\,123 (1\,200) \\
+         & $S_1$ & CP-SAT & $-$4{,}9\,\% & 33 (29) & 1\,138 (1\,218) \\
+         & $S_2$ & CP-SAT & $-$2{,}6\,\% & 76 (73) & 1\,345 (1\,408) \\
+         & $S_3$ & CP-SAT & $-$3{,}0\,\% & 9 (4) & 1\,295 (1\,353) \\
+         & $S_4$ & MILP/CBC & $-$1{,}4\,\% & 73 (73) & 1\,524 (1\,564) \\
+         & $S_5$ & CP-SAT & $-$4{,}9\,\% & 35 (26) & 988 (1\,096) \\
+        \midrule
+        \multirow{6}{*}{Priorité accueil} & $S_0$ & MILP/CBC = CP-SAT & $-$3{,}1\,\% & 4 (4) & 1\,147 (1\,200) \\
+         & $S_1$ & MILP/CBC = CP-SAT & $-$1{,}9\,\% & 29 (29) & 1\,159 (1\,218) \\
+         & $S_2$ & MILP/CBC = CP-SAT & $-$0{,}8\,\% & 73 (73) & 1\,366 (1\,408) \\
+         & $S_3$ & MILP/CBC = CP-SAT & $-$1{,}6\,\% & 4 (4) & 1\,322 (1\,353) \\
+         & $S_4$ & MILP/CBC = CP-SAT & $-$0{,}4\,\% & 73 (73) & 1\,541 (1\,564) \\
+         & $S_5$ & MILP/CBC = CP-SAT & $-$2{,}1\,\% & 26 (26) & 1\,042 (1\,096) \\
+        \midrule
+        \multirow{6}{*}{Priorité personnel} & $S_0$ & CP-SAT & $-$7{,}6\,\% & 27 (4) & 1\,045 (1\,200) \\
+         & $S_1$ & CP-SAT & $-$7{,}2\,\% & 61 (29) & 1\,045 (1\,218) \\
+         & $S_2$ & CP-SAT & $-$4{,}2\,\% & 103 (73) & 1\,264 (1\,408) \\
+         & $S_3$ & CP-SAT & $-$5{,}1\,\% & 32 (4) & 1\,208 (1\,353) \\
+         & $S_4$ & CP-SAT & $-$2{,}8\,\% & 113 (73) & 1\,421 (1\,564) \\
+         & $S_5$ & CP-SAT & $-$7{,}9\,\% & 75 (26) & 871 (1\,096) \\
+        \bottomrule
+    \end{tabular}
+    \par\vspace{3pt}
+    {\footnotesize Les objectifs de deux profils ne sont pas comparables entre eux.}
+\end{table}

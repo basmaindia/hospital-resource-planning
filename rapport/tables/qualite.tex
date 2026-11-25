@@ -1,0 +1,21 @@
+% Généré par rapport/scripts/generate_tables.py : ne pas modifier à la main.
+\begin{table}[H]
+    \centering
+    \caption{Rapport de qualité des données synthétiques (\texttt{data/synthetic/quality\_report.json}).}
+    \label{tab:qualite}
+    \small
+    \begin{tabular}{lrrrl}
+        \toprule
+        \textbf{Table} & \textbf{Lignes} & \textbf{Valeurs vides} & \textbf{Doublons} & \textbf{Explication} \\
+        \midrule
+        \texttt{historical\_demand} & 4\,380 & 3\,285 & 0 & \texttt{emergency\_arrivals} vide hors URG \\
+        \texttt{bed\_capacity} & 4\,380 & 0 & 0 & -- \\
+        \texttt{occupancy} & 4\,380 & 0 & 0 & -- \\
+        \texttt{staff} & 235 & 0 & 0 & -- \\
+        \texttt{staff\_availability} & 771\,975 & 748\,883 & 0 & \texttt{absence\_type} vide si disponible \\
+        \texttt{staff\_requirements} & 39\,420 & 0 & 0 & -- \\
+        \bottomrule
+    \end{tabular}
+    \par\vspace{3pt}
+    {\footnotesize Période couverte : 2023-01-01 au 2025-12-30. Valeurs invalides : 0. Verdict : conforme.}
+\end{table}

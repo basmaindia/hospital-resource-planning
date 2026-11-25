@@ -1,0 +1,19 @@
+{
+  "planning_horizon_days": 7,
+  "random_seed": 42,
+  "services": {
+    "URG": {"beds_total": 75, "base_daily_admissions": 30, "priority": 1, "length_of_stay_days": 2},
+    "MED": {"beds_total": 106, "base_daily_admissions": 18, "priority": 3, "length_of_stay_days": 5},
+    "REA": {"beds_total": 55, "base_daily_admissions": 5, "priority": 0, "length_of_stay_days": 8},
+    "CHI": {"beds_total": 64, "base_daily_admissions": 12, "priority": 2, "length_of_stay_days": 4}
+  },
+  "shifts": [
+    {"code": "MORNING", "start_hour": 7, "duration_hours": 8},
+    {"code": "EVENING", "start_hour": 15, "duration_hours": 8},
+    {"code": "NIGHT", "start_hour": 23, "duration_hours": 8}
+  ],
+  "staff_by_role": {"PHYSICIAN": 50, "NURSE": 110, "CARE_ASSISTANT": 75},
+  "staff_per_ten_beds": {"PHYSICIAN": 1, "NURSE": 2, "CARE_ASSISTANT": 1},
+  "planning_policy": {"mode": "shortage_permitting", "min_rest_hours": 11, "max_consecutive_nights": 3, "solver_time_limit_seconds": 50, "solver_num_workers": 8},
+  "objective_weights": {"opened_bed": 10, "unmet_patient_day": 1000, "staff_target_shortage": 500, "workload_imbalance": 1}
+}

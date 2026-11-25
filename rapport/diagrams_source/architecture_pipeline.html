@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><link rel="stylesheet" href="style.css"><style>
+.ligne { display: grid; grid-template-columns: repeat(4, 235px); column-gap: 34px; position: relative; }
+.ligne .boite { position: relative; min-height: 92px; }
+.ligne .boite:not(:last-child)::after { content: "→"; position: absolute; right: -29px; top: 34px; color: var(--bleu); font-size: 24px; }
+.bas { text-align: center; color: var(--bleu); font-size: 24px; margin: 4px 0; }
+.large { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; }
+.etage { color: var(--vert); font-weight: 700; font-size: 13px; margin: 0 0 6px; text-transform: uppercase; letter-spacing: .04em; }
+</style></head><body><div id="schema">
+<p class="etage">Données et prévision</p>
+<div class="ligne">
+<div class="boite"><b>Configuration</b><br>hospital.json, scenarios.json, profiles.json</div>
+<div class="boite"><b>Données synthétiques</b><br>1 095 jours, graine 42<br><small>data/synthetic</small></div>
+<div class="boite"><b>Prévision</b><br>5 modèles, J+1 à J+7<br><small>results/forecasts</small></div>
+<div class="boite"><b>Besoins opérationnels</b><br>lits, personnel, cohortes<br><small>results/operational_instances</small></div>
+</div>
+<div class="bas">↓</div>
+<p class="etage">Décision</p>
+<div class="ligne">
+<div class="boite"><b>Scénarios</b><br>S0 à S5, 80 cas de sensibilité, simulations</div>
+<div class="boite"><b>Méthodes</b><br>Naïve, Greedy, MILP/CBC, CP-SAT × 3 profils</div>
+<div class="boite"><b>Validateur indépendant</b><br>contraintes dures, cohortes, admissions</div>
+<div class="boite"><b>Expériences</b><br>plans, KPI, provenance<br><small>results/experiments</small></div>
+</div>
+<div class="bas">↓</div>
+<p class="etage">Restitution</p>
+<div class="large">
+<div class="boite"><b>API FastAPI (port 8000)</b><br>16 points d'accès, lectures passives, un seul job de calcul à la fois</div>
+<div class="boite"><b>Dashboard Next.js (port 3011)</b><br>10 vues, dont comparaison, allocation, simulateur et sensibilité</div>
+</div>
+</div></body></html>

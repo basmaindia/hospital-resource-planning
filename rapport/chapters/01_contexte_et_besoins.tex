@@ -1,0 +1,181 @@
+\chapter{Contexte et Analyse des Besoins}
+\label{ch:contexte_analyse_besoins}
+
+Planifier les lits et le personnel d'un hôpital demande d'anticiper la demande, de respecter des règles de travail et de faire des choix lorsque les ressources manquent. Un outil d'aide à la décision peut rendre ces choix explicites et comparables.
+
+Ce chapitre présente le contexte du projet, réalisé au sein de la filière INDIA de l'ENSAM Rabat dans le module Santé Digitale, formule la problématique, recense les besoins et décrit l'organisation de l'équipe (OBS, WBS, RACI et planning).
+
+% ------------------------------------------------------------------------------
+\section{Contexte Général de la Santé Digitale et de la Planification Hospitalière}
+% ------------------------------------------------------------------------------
+
+\subsection{De la Donnée à la Décision}
+La \textbf{santé digitale} associe données, modèles et outils logiciels au service des organisations de soins. Pour la planification des ressources, quatre apports sont recherchés :
+\begin{itemize}
+    \item \textbf{L'anticipation} : prévoir les admissions avant que la tension n'apparaisse ;
+    \item \textbf{La cohérence} : décider ensemble des lits ouverts et du personnel affecté ;
+    \item \textbf{La résilience} : mesurer l'effet d'une crise avant qu'elle ne survienne ;
+    \item \textbf{La transparence} : montrer ce qu'une décision améliore et ce qu'elle dégrade.
+\end{itemize}
+
+\subsection{Deux Familles de Problèmes}
+La littérature distingue les décisions de planification en santé selon leur niveau et leur objet~\cite{hulshof2012}. Deux familles concernent ce projet :
+\begin{enumerate}
+    \item \textbf{La gestion des lits}~\cite{hallbeds} : ouvrir, affecter et libérer des lits en tenant compte de la durée des séjours ;
+    \item \textbf{L'affectation du personnel} (\emph{nurse rostering}) : affecter des professionnels à des postes sous contraintes de disponibilité, de qualification et de repos. Ce problème combinatoire fait l'objet de revues régulières~\cite{burke2004,koukaras2026}.
+\end{enumerate}
+
+Dans le projet, les besoins en personnel ne sont pas une donnée fixe : ils découlent des lits ouverts, eux-mêmes liés à la demande prévue.
+
+% ------------------------------------------------------------------------------
+\section{Présentation du Projet}
+% ------------------------------------------------------------------------------
+
+\subsection{Périmètre Hospitalier}
+Le prototype modélise un hôpital synthétique de \textbf{\NbLits{} lits} et \textbf{\NbAgents{} professionnels}, répartis sur quatre services (tableau~\ref{tab:services}). Ces paramètres sont lus dans \texttt{configs/hospital.json}.
+
+\input{tables/services}
+
+\begin{itemize}
+    \item \textbf{Urgences (\texttt{URG})} : flux le plus élevé, séjour court, hausse d'activité en fin de semaine ;
+    \item \textbf{Médecine (\texttt{MED})} : service le plus grand, dont les lits sont presque tous occupés au début de l'horizon (\RecensementMed{} patients présents avant les sorties du premier jour) ;
+    \item \textbf{Réanimation (\texttt{REA})} : peu d'admissions, mais un séjour plus long que l'horizon de planification ;
+    \item \textbf{Chirurgie (\texttt{CHI})} : activité concentrée sur les jours ouvrés.
+\end{itemize}
+
+\subsection{Personnel et Postes de Travail}
+Le personnel comprend \NbMedecins{} médecins, \NbInfirmiers{} infirmiers et \NbAides{} aides-soignants (tableau~\ref{tab:effectifs}). L'activité est continue, sur trois postes de 8 heures : matin ($07\text{h}$--$15\text{h}$), soir ($15\text{h}$--$23\text{h}$) et nuit ($23\text{h}$--$07\text{h}$). Chaque professionnel peut faire au plus \PostesMax{} postes par semaine.
+
+\input{tables/effectifs}
+
+% ------------------------------------------------------------------------------
+\section{Problématique et Enjeux}
+% ------------------------------------------------------------------------------
+
+\subsection{Problématique Centrale}
+\begin{center}
+\fcolorbox{EnsamBlue}{gris}{
+\parbox{0.9\textwidth}{
+\centering\itshape\bfseries\color{EnsamBlue}
+Comment anticiper les admissions et planifier ensemble l'ouverture des lits et les postes du personnel de plusieurs services, en respectant les règles de travail, et comment rendre lisibles les arbitrages entre accueil des patients et charge du personnel en situation de crise ?
+}
+}
+\end{center}
+
+\subsection{Enjeux Opérationnels et Scientifiques}
+\begin{itemize}
+    \item \textbf{Enjeu prédictif} : prévoir les admissions à court terme sans utiliser d'information future ;
+    \item \textbf{Enjeu combinatoire} : résoudre, avec un budget de \TempsSolveur{} secondes par solveur, un modèle de \NbVariables{} variables et \NbContraintes{} contraintes en $S_0$ ;
+    \item \textbf{Enjeu de contrôle} : vérifier chaque plan par un code distinct de celui qui l'a produit ;
+    \item \textbf{Enjeu d'interprétation} : distinguer un plan qui respecte les contraintes d'un plan correctement doté en personnel.
+\end{itemize}
+
+% ------------------------------------------------------------------------------
+\section{Analyse des Besoins}
+% ------------------------------------------------------------------------------
+
+\subsection{Besoins Fonctionnels}
+Le tableau~\ref{tab:besoins_fonctionnels} présente les besoins fonctionnels et la preuve disponible dans le projet.
+
+\begin{table}[H]
+    \centering
+    \caption{Synthèse des besoins fonctionnels et de leur réalisation.}
+    \label{tab:besoins_fonctionnels}
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{lp{5.2cm}p{8.6cm}}
+        \toprule
+        \textbf{Code} & \textbf{Besoin} & \textbf{Réalisation et preuve} \\
+        \midrule
+        \textbf{BF01} & Données synthétiques reproductibles & \NbJours{} jours, graine fixée, rapport de qualité (tableau~\ref{tab:qualite}). \\
+        \textbf{BF02} & Prévision multi-modèles & Cinq modèles, validation chronologique et test final réservé (tableaux~\ref{tab:previsions_validation} et~\ref{tab:previsions_test}). \\
+        \textbf{BF03} & Besoins de lits et de personnel & Instance opérationnelle $S_0$ dans \texttt{results/operational\_instances/S0}. \\
+        \textbf{BF04} & Méthodes rapides & Stratégie naïve et heuristique Greedy (tableau~\ref{tab:performances}). \\
+        \textbf{BF05} & Solveurs & MILP/CBC et CP-SAT, budget de \TempsSolveur{} s et \ThreadsSolveur{} threads. \\
+        \textbf{BF06} & Contrôle indépendant & Module \texttt{validator.py}, 72 plans sur 72 sans violation. \\
+        \textbf{BF07} & Scénarios et cas dégradés & Six scénarios $S_0$ à $S_5$ (tableau~\ref{tab:scenarios}). \\
+        \textbf{BF08} & Profils de décision & Trois profils de pondération (tableau~\ref{tab:profils}). \\
+        \textbf{BF09} & Analyse de sensibilité & Grille de \NbCas{} cas, calculée avec Naïve et Greedy. \\
+        \textbf{BF10} & Simulation personnalisée & Vue Simulateur et champ \texttt{custom\_scenario} de l'API. \\
+        \textbf{BF11} & Restitution & API de \NbEndpoints{} points d'accès et tableau de bord de dix vues. \\
+        \textbf{BF12} & Export & Téléchargement contrôlé des artefacts d'une expérience. \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}
+
+\subsection{Besoins Non Fonctionnels}
+\begin{itemize}
+    \item \textbf{Réactivité} : les méthodes Naïve et Greedy répondent en moins de deux secondes ; les solveurs ont un budget de temps fixe et configurable ;
+    \item \textbf{Reproductibilité} : graine fixée, empreinte des entrées de chaque expérience, chemins relatifs ;
+    \item \textbf{Intégrité} : validation des configurations et des échanges par schémas Pydantic, contrôle des chemins téléchargés ;
+    \item \textbf{Honnêteté de l'affichage} : une valeur absente donne un état vide explicite, jamais un chiffre inventé.
+\end{itemize}
+
+% ------------------------------------------------------------------------------
+\section{Organisation et Planification du Projet}
+% ------------------------------------------------------------------------------
+
+Le projet a été mené par une équipe de six étudiants de la filière INDIA. Le planning prévisionnel s'étend du 21 septembre au 24 novembre 2026, date prévue de la soutenance.
+
+\subsection{Structure Organisationnelle de l'Équipe (OBS)}
+\begin{figure}[H]
+    \centering
+    \captureimg[0.92\textwidth]{obs}
+    \caption{Structure organisationnelle et répartition des domaines techniques (OBS).}
+    \label{fig:obs_team}
+\end{figure}
+
+\begin{itemize}
+    \item \textbf{LACHGAR Ridouan} : données synthétiques, contrôle de qualité et évaluation des cinq modèles de prévision ;
+    \item \textbf{CHAOUKI Basma} : modélisation mathématique, contraintes de personnel et modèle MILP (PuLP / CBC) ;
+    \item \textbf{EL HOUR Maroua} : modèle CP-SAT (OR-Tools) et validateur indépendant ;
+    \item \textbf{EL FEKAK Hafsa} : architecture logicielle, API FastAPI, jobs de calcul et sécurité des téléchargements ;
+    \item \textbf{ABDELLAOUI Hajar} : tableau de bord Next.js et graphiques ;
+    \item \textbf{AFIF Mohamed} : protocole expérimental, scénarios $S_0$ à $S_5$ et grille de sensibilité.
+\end{itemize}
+
+\subsection{Décomposition Hiérarchique du Projet (WBS)}
+\begin{figure}[H]
+    \centering
+    \captureimg{wbs}
+    \caption{Décomposition modulaire et hiérarchique des travaux (WBS).}
+    \label{fig:wbs_diagram}
+\end{figure}
+
+\subsection{Matrice des Responsabilités (RACI)}
+Le tableau~\ref{tab:raci_matrix} utilise les conventions \textbf{R} (réalisateur), \textbf{A} (approbateur), \textbf{C} (consulté) et \textbf{I} (informé).
+
+\begin{table}[H]
+    \centering
+    \caption{Matrice d'attribution des responsabilités (RACI) par lot de travail.}
+    \label{tab:raci_matrix}
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{lcccccc}
+        \toprule
+        \textbf{Lot de travail} & \textbf{LACHGAR} & \textbf{EL FEKAK} & \textbf{CHAOUKI} & \textbf{EL HOUR} & \textbf{ABDELLAOUI} & \textbf{AFIF} \\
+        \midrule
+        WP1 : Cadrage et données & R & C & C & I & I & C \\
+        WP2 : Modélisation et prévision & R & I & R & C & I & I \\
+        WP3 : Optimisation et contrôle & I & C & R & R & I & C \\
+        WP4 : Plateforme web & I & R & I & I & R & I \\
+        WP5 : Expérimentations & C & C & C & C & C & R \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}
+
+\subsection{Planification Temporelle du Projet (Diagramme de Gantt)}
+\begin{figure}[H]
+    \centering
+    \captureimg{gantt}
+    \caption{Planning prévisionnel du projet (21 septembre au 24 novembre 2026).}
+    \label{fig:gantt_diagram}
+\end{figure}
+
+Cinq jalons rythment ce planning : données contrôlées (M1), prévision validée (M2), méthodes et validateur (M3), plateforme intégrée (M4) et soutenance (M5).
+
+% ------------------------------------------------------------------------------
+\section*{Conclusion du Chapitre}
+\addcontentsline{toc}{section}{Conclusion du Chapitre}
+% ------------------------------------------------------------------------------
+Ce chapitre a posé le cadre du projet : un hôpital synthétique de \NbLits{} lits et \NbAgents{} professionnels, une problématique d'arbitrage entre accueil et personnel, douze besoins fonctionnels et une organisation en cinq lots. Avant d'aborder la technique, le chapitre suivant examine les règles et les normes qui encadreraient l'usage d'un tel outil dans un établissement réel.

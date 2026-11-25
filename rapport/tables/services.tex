@@ -1,0 +1,20 @@
+% Généré par rapport/scripts/generate_tables.py : ne pas modifier à la main.
+\begin{table}[H]
+    \centering
+    \caption{Services de l'hôpital synthétique (\texttt{configs/hospital.json}).}
+    \label{tab:services}
+    \resizebox{\textwidth}{!}{\begin{tabular}{lcccccc}
+        \toprule
+        \textbf{Service} & \textbf{Code} & \textbf{Lits} & \textbf{Admissions de base / jour} & \textbf{DMS (jours)} & \textbf{Effet d'événement} & \textbf{Rang Greedy} \\
+        \midrule
+        Urgences & \texttt{URG} & 75 & 30 & 2 & +10 & 1 \\
+        Médecine & \texttt{MED} & 106 & 18 & 5 & +2 & 3 \\
+        Réanimation & \texttt{REA} & 55 & 5 & 8 & +3 & 0 \\
+        Chirurgie & \texttt{CHI} & 64 & 12 & 4 & +1 & 2 \\
+        \midrule
+        \textbf{Total} &  & \textbf{300} &  &  &  &  \\
+        \bottomrule
+    \end{tabular}}
+    \par\vspace{3pt}
+    {\footnotesize Rang Greedy : ordre de traitement du personnel par l'heuristique (0 = premier servi).}
+\end{table}

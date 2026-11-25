@@ -1,0 +1,21 @@
+% Généré par rapport/scripts/generate_tables.py : ne pas modifier à la main.
+\begin{table}[H]
+    \centering
+    \caption{Colonnes de \texttt{historical\_demand.csv}.}
+    \label{tab:dictionnaire}
+    \small
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Colonne} & \textbf{Type} & \textbf{Description} \\
+        \midrule
+        \texttt{date} & Date ISO & Jour observé \\
+        \texttt{service} & Texte & Code du service : URG, MED, REA ou CHI \\
+        \texttt{admissions} & Entier & Admissions du jour \\
+        \texttt{discharges} & Entier & Sorties issues de la dynamique des séjours \\
+        \texttt{emergency\_arrivals} & Entier ou vide & Arrivées aux urgences, renseignées pour URG seulement \\
+        \texttt{is\_holiday} & Booléen & Jour férié synthétique \\
+        \texttt{is\_special\_event} & Booléen & Événement exceptionnel tiré au hasard \\
+        \texttt{data\_source} & Texte & Toujours synthetic \\
+        \bottomrule
+    \end{tabular}
+\end{table}

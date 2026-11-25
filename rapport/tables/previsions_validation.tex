@@ -1,0 +1,35 @@
+% Généré par rapport/scripts/generate_tables.py : ne pas modifier à la main.
+\begin{table}[H]
+    \centering
+    \caption{Erreurs de validation des cinq modèles (84 prévisions par service et par modèle).}
+    \label{tab:previsions_validation}
+    \resizebox{\textwidth}{!}{\begin{tabular}{llccccc}
+        \toprule
+        \textbf{Service} & \textbf{Modèle} & \textbf{MAE} & \textbf{RMSE} & \textbf{WAPE} & \textbf{Biais} & \textbf{Décision} \\
+        \midrule
+        \multirow{5}{*}{Urgences (\texttt{URG})} & Naïf & 7{,}64 & 9{,}11 & 21{,}93\,\% & $+$1{,}64 & -- \\
+         & Naïf saisonnier & 7{,}20 & 9{,}23 & 20{,}66\,\% & $-$1{,}11 & -- \\
+         & Moyenne mobile & 5{,}82 & 7{,}25 & 16{,}68\,\% & $-$0{,}46 & -- \\
+         & Lissage exponentiel & 4{,}92 & 6{,}38 & 14{,}11\,\% & $-$1{,}46 & -- \\
+         & \textbf{Régression à retards} & \textbf{4{,}91} & \textbf{6{,}36} & \textbf{14{,}08\,\%} & \textbf{$-$1{,}64} & \textbf{Retenu} \\
+        \midrule
+        \multirow{5}{*}{Médecine (\texttt{MED})} & Naïf & 4{,}76 & 6{,}07 & 26{,}37\,\% & $-$0{,}48 & -- \\
+         & Naïf saisonnier & 4{,}86 & 6{,}03 & 26{,}90\,\% & $-$0{,}19 & -- \\
+         & Moyenne mobile & 3{,}46 & 4{,}33 & 19{,}18\,\% & $-$0{,}22 & -- \\
+         & Lissage exponentiel & 3{,}15 & 3{,}86 & 17{,}47\,\% & $+$0{,}17 & -- \\
+         & \textbf{Régression à retards} & \textbf{3{,}12} & \textbf{3{,}83} & \textbf{17{,}25\,\%} & \textbf{$+$0{,}18} & \textbf{Retenu} \\
+        \midrule
+        \multirow{5}{*}{Réanimation (\texttt{REA})} & Naïf & 2{,}51 & 3{,}31 & 45{,}67\,\% & $+$0{,}08 & -- \\
+         & Naïf saisonnier & 2{,}83 & 3{,}47 & 51{,}52\,\% & $+$0{,}02 & -- \\
+         & Moyenne mobile & 2{,}24 & 2{,}88 & 40{,}74\,\% & $+$0{,}03 & -- \\
+         & Lissage exponentiel & 2{,}09 & 2{,}73 & 37{,}97\,\% & $+$0{,}06 & -- \\
+         & \textbf{Régression à retards} & \textbf{2{,}05} & \textbf{2{,}69} & \textbf{37{,}26\,\%} & \textbf{$+$0{,}07} & \textbf{Retenu} \\
+        \midrule
+        \multirow{5}{*}{Chirurgie (\texttt{CHI})} & Naïf & 5{,}81 & 7{,}37 & 43{,}92\,\% & $+$0{,}02 & -- \\
+         & Naïf saisonnier & 3{,}98 & 4{,}77 & 30{,}06\,\% & $-$0{,}95 & -- \\
+         & Moyenne mobile & 4{,}38 & 5{,}25 & 33{,}10\,\% & $-$1{,}02 & -- \\
+         & Lissage exponentiel & 4{,}64 & 5{,}48 & 35{,}05\,\% & $-$0{,}98 & -- \\
+         & \textbf{Régression à retards} & \textbf{3{,}41} & \textbf{4{,}29} & \textbf{25{,}78\,\%} & \textbf{$-$0{,}98} & \textbf{Retenu} \\
+        \bottomrule
+    \end{tabular}}
+\end{table}

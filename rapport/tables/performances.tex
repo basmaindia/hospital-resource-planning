@@ -1,0 +1,16 @@
+% Généré par rapport/scripts/generate_tables.py : ne pas modifier à la main.
+\begin{table}[H]
+    \centering
+    \caption{Temps de calcul, gap déclaré et respect des contraintes (18 plans par méthode).}
+    \label{tab:performances}
+    \resizebox{\textwidth}{!}{\begin{tabular}{lcccccc}
+        \toprule
+        \textbf{Méthode} & \textbf{Min (s)} & \textbf{Moyenne (s)} & \textbf{Max (s)} & \textbf{Gap} & \textbf{Optimal prouvé} & \textbf{Contraintes respectées} \\
+        \midrule
+        Naïve & 0{,}3 & 0{,}5 & 1{,}4 & -- & 0 & 18 / 18 \\
+        Greedy & 0{,}3 & 0{,}5 & 1{,}3 & -- & 0 & 18 / 18 \\
+        MILP/CBC & 7{,}2 & 51{,}1 & 62{,}6 & 0{,}0\,\% à 19{,}2\,\% & 1 & 18 / 18 \\
+        CP-SAT & 43{,}7 & 51{,}5 & 53{,}1 & 0{,}0\,\% à 4{,}5\,\% & 1 & 18 / 18 \\
+        \bottomrule
+    \end{tabular}}
+\end{table}

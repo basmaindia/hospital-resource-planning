@@ -1,0 +1,9 @@
+/* Charte du rapport : bleu ENSAM, vert canard, gris clair. */
+:root { --bleu: #153C55; --vert: #087F73; --gris: #F0F4F5; --texte: #323232; }
+body { margin: 0; background: #ffffff; font-family: "Segoe UI", Arial, sans-serif; color: var(--texte); }
+#schema { display: inline-block; padding: 22px; background: #ffffff; }
+.titre { background: var(--bleu); color: #ffffff; font-weight: 700; text-align: center; border-radius: 6px; padding: 12px 20px; }
+.boite { border: 1.5px solid var(--vert); background: var(--gris); border-radius: 6px; padding: 10px 12px; font-size: 14px; line-height: 1.35; }
+.boite b { color: var(--bleu); }
+.fleche { color: var(--bleu); font-size: 24px; text-align: center; align-self: center; }
+small { color: #587070; }

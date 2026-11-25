@@ -1,0 +1,43 @@
+% Généré par rapport/scripts/generate_tables.py : ne pas modifier à la main.
+\begin{table}[H]
+    \centering
+    \caption{Résultats des quatre méthodes, profil « Priorité accueil ».}
+    \label{tab:resultats_priorite_accueil}
+    \resizebox{\textwidth}{!}{\begin{tabular}{llrrrrrrrr}
+        \toprule
+        \textbf{Scénario} & \textbf{Méthode} & \textbf{Objectif $\mathcal{Z}$} & \textbf{vs Greedy} & \textbf{Gap} & \textbf{Refus} & \textbf{Couv. demande} & \textbf{Déficit RH} & \textbf{Postes couverts} & \textbf{Équité} \\
+        \midrule
+        \multirow{4}{*}{$S_0$ Nominal} & Naïve & 964\,385 & $+$13{,}9\,\% & -- & 4 & 99{,}0\,\% & 1\,365 & 41{,}2\,\% & 15 \\
+         & Greedy & 846\,879 & -- & -- & 4 & 99{,}0\,\% & 1\,200 & 48{,}3\,\% & 9 \\
+         & MILP/CBC & \textbf{820\,370} & $-$3{,}1\,\% & 0{,}0\,\% & 4 & 99{,}0\,\% & 1\,147 & 50{,}6\,\% & 0 \\
+         & CP-SAT & \textbf{820\,370} & $-$3{,}1\,\% & 0{,}5\,\% & 4 & 99{,}0\,\% & 1\,147 & 50{,}6\,\% & 0 \\
+        \midrule
+        \multirow{4}{*}{$S_1$ Pic aux urgences} & Naïve & 1\,847\,465 & $+$9{,}3\,\% & -- & 31 & 95{,}9\,\% & 1\,383 & 40{,}9\,\% & 15 \\
+         & Greedy & 1\,690\,059 & -- & -- & 29 & 96{,}5\,\% & 1\,218 & 47{,}9\,\% & 9 \\
+         & MILP/CBC & \textbf{1\,657\,550} & $-$1{,}9\,\% & 0{,}0\,\% & 29 & 96{,}5\,\% & 1\,159 & 50{,}3\,\% & 0 \\
+         & CP-SAT & \textbf{1\,657\,550} & $-$1{,}9\,\% & 0{,}2\,\% & 29 & 96{,}5\,\% & 1\,159 & 50{,}3\,\% & 0 \\
+        \midrule
+        \multirow{4}{*}{$S_2$ Hausse générale} & Naïve & 2\,714\,265 & $+$5{,}4\,\% & -- & 74 & 90{,}7\,\% & 1\,566 & 38{,}3\,\% & 15 \\
+         & Greedy & 2\,576\,327 & -- & -- & 73 & 91{,}0\,\% & 1\,408 & 44{,}6\,\% & 7 \\
+         & MILP/CBC & \textbf{2\,555\,320} & $-$0{,}8\,\% & 0{,}0\,\% & 73 & 91{,}0\,\% & 1\,366 & 46{,}2\,\% & 0 \\
+         & CP-SAT & \textbf{2\,555\,320} & $-$0{,}8\,\% & 0{,}1\,\% & 73 & 91{,}0\,\% & 1\,366 & 46{,}2\,\% & 0 \\
+        \midrule
+        \multirow{4}{*}{$S_3$ Absences} & Naïve & 1\,040\,885 & $+$10{,}0\,\% & -- & 4 & 99{,}0\,\% & 1\,494 & 35{,}7\,\% & 15 \\
+         & Greedy & 945\,876 & -- & -- & 4 & 99{,}0\,\% & 1\,353 & 41{,}7\,\% & 6 \\
+         & MILP/CBC & \textbf{930\,370} & $-$1{,}6\,\% & 0{,}0\,\% & 4 & 99{,}0\,\% & 1\,322 & 43{,}1\,\% & 0 \\
+         & CP-SAT & \textbf{930\,370} & $-$1{,}6\,\% & 0{,}0\,\% & 4 & 99{,}0\,\% & 1\,322 & 43{,}1\,\% & 0 \\
+        \midrule
+        \multirow{4}{*}{$S_4$ Crise combinée} & Naïve & 2\,800\,765 & $+$4{,}6\,\% & -- & 74 & 90{,}7\,\% & 1\,712 & 32{,}5\,\% & 15 \\
+         & Greedy & 2\,676\,825 & -- & -- & 73 & 91{,}0\,\% & 1\,564 & 38{,}4\,\% & 5 \\
+         & MILP/CBC & \textbf{2\,665\,320} & $-$0{,}4\,\% & 0{,}0\,\% & 73 & 91{,}0\,\% & 1\,541 & 39{,}4\,\% & 0 \\
+         & CP-SAT & \textbf{2\,665\,320} & $-$0{,}4\,\% & 0{,}1\,\% & 73 & 91{,}0\,\% & 1\,541 & 39{,}4\,\% & 0 \\
+        \midrule
+        \multirow{4}{*}{$S_5$ Fermeture de lits} & Naïve & 1\,402\,455 & $+$11{,}3\,\% & -- & 27 & 94{,}0\,\% & 1\,258 & 43{,}1\,\% & 15 \\
+         & Greedy & 1\,260\,469 & -- & -- & 26 & 94{,}1\,\% & 1\,096 & 50{,}6\,\% & 9 \\
+         & MILP/CBC & \textbf{1\,233\,460} & $-$2{,}1\,\% & 0{,}1\,\% & 26 & 94{,}1\,\% & 1\,042 & 53{,}0\,\% & 0 \\
+         & CP-SAT & \textbf{1\,233\,460} & $-$2{,}1\,\% & 0{,}4\,\% & 26 & 94{,}1\,\% & 1\,042 & 53{,}0\,\% & 0 \\
+        \bottomrule
+    \end{tabular}}
+    \par\vspace{3pt}
+    {\footnotesize En gras : meilleur objectif du scénario. Les 24 plans respectent toutes les contraintes dures.}
+\end{table}

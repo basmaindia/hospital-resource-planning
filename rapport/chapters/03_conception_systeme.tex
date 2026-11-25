@@ -1,0 +1,260 @@
+\chapter{Analyse et Conception du Système}
+\label{ch:conception_systeme}
+
+Planifier ensemble les lits et le personnel demande un modèle précis : ce que l'on décide, ce que l'on interdit et ce que l'on accepte de dégrader.
+
+Ce chapitre décrit l'architecture du système, la dynamique des patients, les contraintes de personnel, la fonction objectif et ses trois profils, puis la conception des quatre méthodes, du validateur indépendant, des scénarios et de l'interface. La formulation est celle du code ; sa version de référence est le document \texttt{docs/mathematical\_model.md}.
+
+% ------------------------------------------------------------------------------
+\section{Architecture Générale du Système}
+% ------------------------------------------------------------------------------
+
+\begin{figure}[H]
+    \centering
+    \captureimg{architecture_pipeline}
+    \caption{Architecture fonctionnelle globale du système de planification hospitalière.}
+    \label{fig:global_architecture}
+\end{figure}
+
+Le traitement s'articule en cinq étapes :
+\begin{enumerate}
+    \item \textbf{Données} : génération et contrôle de \NbJours{} jours de données synthétiques ;
+    \item \textbf{Prévision} : admissions attendues par service de $J+1$ à $J+7$ ;
+    \item \textbf{Besoins opérationnels} : conversion des prévisions en admissions demandées, occupation, capacité et cibles de personnel ; c'est l'\emph{instance} commune à toutes les méthodes ;
+    \item \textbf{Optimisation et contrôle} : calcul des plans par quatre méthodes, puis contrôle par le validateur ;
+    \item \textbf{Restitution} : enregistrement des expériences, API et tableau de bord.
+\end{enumerate}
+
+% ------------------------------------------------------------------------------
+\section{Modélisation Métier}
+% ------------------------------------------------------------------------------
+
+\subsection{Ensembles et Paramètres}
+\begin{table}[H]
+    \centering
+    \caption{Principales notations du modèle.}
+    \label{tab:notations}
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{lp{10.6cm}l}
+        \toprule
+        \textbf{Symbole} & \textbf{Signification} & \textbf{Nature} \\
+        \midrule
+        $\mathcal{S}, \mathcal{T}, \mathcal{K}, \mathcal{R}, \mathcal{I}$ & Services, jours (7), postes (3), rôles (3) et professionnels actifs & Ensembles \\
+        $q_{s,t}$ & Admissions demandées, arrondi supérieur de la prévision & Paramètre \\
+        $o_{s,t}$ & Occupation si toute la demande est acceptée & Paramètre \\
+        $c_{s,t}$, $\ell_s$ & Lits disponibles, durée de séjour fixe en jours & Paramètres \\
+        $\rho_r$, $m_r$ & Cible pour dix lits ouverts et par poste, minimum par poste & Paramètres \\
+        $n_i$ & Nombre maximal de postes du professionnel $i$ sur l'horizon & Paramètre \\
+        $A_{s,t}$, $O_{s,t}$ & Admissions acceptées, occupation soutenue & Entiers \\
+        $L_{s,t}$, $Y_{s,t}$ & Lits ouverts, service ouvert & Entier, binaire \\
+        $X_{i,s,t,k}$ & Affectation, créée seulement si $i$ est disponible et qualifié & Binaire \\
+        $Q_{s,t,k,r}$ & Postes manquants par rapport à la cible & Entier \\
+        $W^{\min}_r$, $W^{\max}_r$ & Charges minimale et maximale du rôle $r$, en postes & Entiers \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}
+
+En $S_0$, le modèle compte \NbVariables{} variables, dont \NbAffectations{} variables d'affectation et \NbDeficits{} variables de déficit, et \NbContraintes{} contraintes.
+
+\subsection{Dynamique des Séjours}
+Les sorties sont traitées avant les admissions. La durée de séjour est fixe par service : un patient refusé le jour $j$ aurait occupé un lit de $j$ à $j + \ell_s - 1$. L'occupation soutenue est donc :
+\begin{equation}
+    O_{s,t} + \sum_{j=\max(1,\,t-\ell_s+1)}^{t} \left(q_{s,j} - A_{s,j}\right) = o_{s,t}
+    \quad \forall s \in \mathcal{S}, \; \forall t \in \mathcal{T}, \qquad 0 \le A_{s,t} \le q_{s,t}
+\end{equation}
+
+La demande non soutenue, en journées-patients, n'est pas une variable supplémentaire : $D_{s,t} = o_{s,t} - O_{s,t}$.
+
+\subsection{Capacité en Lits}
+Les patients présents doivent tenir dans les lits ouverts, qui ne dépassent pas les lits disponibles :
+\begin{equation}
+    O_{s,t} \le L_{s,t} \le c_{s,t} \, Y_{s,t}, \qquad L_{s,t} \ge Y_{s,t}
+    \quad \forall s \in \mathcal{S}, \; \forall t \in \mathcal{T}
+\end{equation}
+
+\subsection{Dotation Minimale et Cible de Personnel}
+Le modèle distingue deux niveaux, dont les valeurs sont données au tableau~\ref{tab:effectifs}.
+
+La \textbf{dotation minimale} est une contrainte dure, indépendante du nombre de lits :
+\begin{equation}
+    \sum_{i \in \mathcal{I}_r} X_{i,s,t,k} \ge m_r \, Y_{s,t} \quad \forall s, t, k, r
+\end{equation}
+
+La \textbf{cible} dépend des lits ouverts ; elle peut ne pas être atteinte, au prix d'un déficit $Q$ :
+\begin{equation}
+    10 \left( \sum_{i \in \mathcal{I}_r} X_{i,s,t,k} + Q_{s,t,k,r} \right) \ge \rho_r \, L_{s,t} \quad \forall s, t, k, r
+\end{equation}
+
+où $\mathcal{I}_r$ est l'ensemble des professionnels du rôle $r$. Les cibles sont identiques pour tous les services et tous les postes : c'est une simplification.
+
+\subsection{Contraintes Individuelles}
+\begin{enumerate}
+    \item \textbf{Un poste par jour} :
+    \begin{equation}
+        \sum_{s \in \mathcal{S}} \sum_{k \in \mathcal{K}} X_{i,s,t,k} \le 1 \quad \forall i \in \mathcal{I}, \; \forall t \in \mathcal{T}
+    \end{equation}
+    \item \textbf{Nombre maximal de postes} (\PostesMax{} sur l'horizon) :
+    \begin{equation}
+        \sum_{s \in \mathcal{S}} \sum_{t \in \mathcal{T}} \sum_{k \in \mathcal{K}} X_{i,s,t,k} \le n_i \quad \forall i \in \mathcal{I}
+    \end{equation}
+    \item \textbf{Repos minimal de \ReposMin{} heures} entre deux jours consécutifs. Soit $\mathcal{F}$ l'ensemble des couples de postes séparés par un repos insuffisant :
+    \begin{equation}
+        \sum_{s \in \mathcal{S}} X_{i,s,t,k} + \sum_{s \in \mathcal{S}} X_{i,s,t+1,k'} \le 1 \quad \forall i, \; \forall t, \; \forall (k,k') \in \mathcal{F}
+    \end{equation}
+    Avec les horaires retenus, $\mathcal{F}$ contient trois couples : soir puis matin, nuit puis matin, nuit puis soir. Deux nuits consécutives sont permises.
+    \item \textbf{Nuits consécutives} : au plus \NuitsMax{} nuits sur toute fenêtre de quatre jours de l'horizon.
+\end{enumerate}
+
+\subsection{Politique de Sous-Effectif}
+La politique \texttt{shortage\_permitting}, utilisée pour tous les résultats, n'assouplit que la cible de personnel, par la variable $Q$. La politique \texttt{strict} impose $A = q$ et $Q = 0$. Les autres contraintes restent dures dans les deux cas.
+
+\begin{notebox}{Conséquence à retenir}
+Ouvrir un lit n'exige que la dotation minimale du service. Un plan peut donc \textbf{respecter les contraintes} tout en étant très loin de sa cible de personnel. C'est pourquoi l'outil affiche toujours, à côté, le pourcentage de \textbf{postes cibles couverts}.
+\end{notebox}
+
+\subsection{Équité}
+L'équité porte sur les professionnels actifs \textbf{présents}, c'est-à-dire disponibles à au moins un poste de l'horizon. Pour chaque rôle, $W^{\min}_r \le \text{charge}_i \le W^{\max}_r$ ; l'indicateur est la somme des étendues $W^{\max}_r - W^{\min}_r$. Un agent absent sur tout l'horizon est exclu, sinon l'étendue resterait élevée dans les scénarios d'absence quelle que soit la méthode.
+
+% ------------------------------------------------------------------------------
+\section{Conception de la Chaîne de Données et de la Prévision}
+% ------------------------------------------------------------------------------
+
+\subsection{Générateur Synthétique}
+Le générateur couvre \NbJours{} jours, du \DateDebut{} au \DateFin{}. Les admissions d'un service suivent une loi de Poisson dont le paramètre additionne :
+\begin{itemize}
+    \item un niveau de base par service ;
+    \item un effet du jour de la semaine ;
+    \item une tendance journalière ;
+    \item un effet d'événement exceptionnel, tiré avec une probabilité de 3\,\% par jour.
+\end{itemize}
+
+Le générateur ne comporte pas de saisonnalité annuelle. Il produit aussi les fermetures temporaires de lits, les absences et la disponibilité de chaque professionnel à chaque poste (\LignesDispo{} lignes). La graine fixe le résultat.
+
+\subsection{Contrôle de Qualité}
+Le contrôle vérifie les doublons, les valeurs invalides et la conservation des patients. Il ne conclut pas à l'absence de valeurs vides : le tableau~\ref{tab:qualite} montre que deux colonnes en contiennent, et pourquoi.
+
+\input{tables/qualite}
+
+\subsection{Protocole de Prévision et Erreur WAPE}
+Les modèles sont évalués chronologiquement : apprentissage sur 730 jours au minimum, 12 origines de validation de 7 jours (soit \NbPrevVal{} prévisions par service et par modèle), puis un test final de \NbPrevTest{} jours réservé. Aucune donnée postérieure à l'origine n'est utilisée. Le modèle retenu pour un service est celui qui minimise l'erreur de validation :
+\begin{equation}
+    \text{WAPE} = \frac{\sum_{t=1}^{N} |y_t - \hat{y}_t|}{\sum_{t=1}^{N} y_t} \times 100\,\%
+\end{equation}
+Le WAPE reste défini lorsque certaines valeurs journalières sont nulles, ce qui n'est pas le cas d'une moyenne d'erreurs relatives.
+
+% ------------------------------------------------------------------------------
+\section{Fonction Objectif et Profils de Pondération}
+% ------------------------------------------------------------------------------
+
+\subsection{Fonction Objectif}
+Toutes les méthodes sont évaluées avec la même fonction $\mathcal{Z}$ :
+\begin{equation}
+    \min \; \mathcal{Z} = c_{\text{lit}} \sum_{s,t} L_{s,t}
+    + \sum_{s,t} c^{s}_{\text{dem}} \, D_{s,t}
+    + \sum_{s,t} c^{s}_{\text{ref}} \, (q_{s,t} - A_{s,t})
+    + \sum_{s,t,k,r} c^{s}_{\text{rh}} \, Q_{s,t,k,r}
+    + c_{\text{eq}} \sum_{r} \left(W^{\max}_r - W^{\min}_r\right)
+    \label{eq:objectif}
+\end{equation}
+
+La configuration de base (\texttt{hospital.json}) fixe \textbf{quatre coefficients} : $c_{\text{lit}} = 10$ par lit-jour ouvert, $c_{\text{dem}} = 1\,000$ par journée-patient non soutenue, $c_{\text{rh}} = 500$ par poste cible non couvert et $c_{\text{eq}} = 1$ par poste d'étendue de charge. Les profils peuvent y ajouter un coût par admission refusée $c_{\text{ref}}$, nul par défaut, et des multiplicateurs par service. Ces coefficients sont des points sans unité monétaire : l'objectif n'est pas un coût financier.
+
+\subsection{Trois Profils}
+\input{tables/profils}
+
+\begin{itemize}
+    \item \textbf{Équilibré} : poids de la configuration de base ;
+    \item \textbf{Priorité accueil} : journées-patients et refus fortement pénalisés, surtout aux Urgences ;
+    \item \textbf{Priorité personnel} : déficit de personnel et déséquilibre de charge plus pénalisés.
+\end{itemize}
+
+Ces valeurs ont été choisies par l'équipe. Les objectifs de deux profils ne sont pas comparables : on compare leurs indicateurs (refus, couverture, déficit, équité).
+
+\subsection{Effet de Palier}
+Dix lits ouverts demandent 12 postes cibles par jour : avec le profil équilibré et sans personnel disponible, un lit coûte en moyenne $10 + 1{,}2 \times 500 = 610$ points, moins que les $1\,000$ points d'une journée-patient non soutenue. Accueillir reste donc préférable en moyenne. Mais la cible est entière : passer de 5 à 6 lits ajoute 3 postes infirmiers par jour (1\,510 points avec le lit), et passer de 10 à 11 lits ajoute 9 postes (4\,510 points). Refuser un patient pour rester sous un palier devient alors avantageux pour l'objectif.
+
+Ce mécanisme se lit dans les résultats : en $S_0$, profil équilibré, CP-SAT ouvre un nombre de lits différent de Greedy dans \PaliersDiffEq{} cas (un service, un jour) ; dans \PaliersCinqEq{} d'entre eux, il s'arrête sur un multiple de 5. Avec la priorité personnel, c'est le cas de \PaliersCinqPer{} sur \PaliersDiffPer{}.
+
+% ------------------------------------------------------------------------------
+\section{Conception des Quatre Méthodes}
+% ------------------------------------------------------------------------------
+
+\begin{table}[H]
+    \centering
+    \caption{Principe des quatre méthodes.}
+    \label{tab:methodes}
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{lp{6.2cm}p{6.6cm}cc}
+        \toprule
+        \textbf{Méthode} & \textbf{Admissions et lits} & \textbf{Personnel} & \textbf{Lit les poids} & \textbf{Déterministe} \\
+        \midrule
+        Naïve & Taux d'acceptation unique par jour, dans la limite des lits de chaque service. & Dotation minimale, puis même fraction de la cible partout (plus forts restes). & Non & Oui \\
+        Greedy & Autant d'admissions que de lits libres, service par service. & Dotation minimale, puis cible ; ordre date, priorité du service, poste, rôle ; premier agent admissible. & Non & Oui \\
+        MILP/CBC & Formulation complète. & Formulation complète, sans solution initiale. & Oui & Non garanti \\
+        CP-SAT & Formulation complète. & Formulation complète, avec le plan Greedy comme indication de départ. & Oui & Non \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}
+
+Naïve et Greedy ne lisent pas les poids : leur plan est identique pour les trois profils, seule son évaluation change. Aucune solution initiale n'est donnée à CBC : lors d'essais, il restait bloqué sur le plan Greedy, ce qui rendait la comparaison sans objet.
+
+% ------------------------------------------------------------------------------
+\section{Conception du Validateur Indépendant}
+% ------------------------------------------------------------------------------
+
+Le module \texttt{validator.py} recalcule les règles depuis les tables produites, sans réutiliser les contraintes des solveurs ni savoir quelle méthode a produit le plan. Il contrôle :
+\begin{enumerate}
+    \item la capacité et le bilan des lits de chaque jour ;
+    \item les admissions : $0 \le \text{acceptées} \le \text{demandées}$, et refus cohérents ;
+    \item la \textbf{dynamique des cohortes}, rejouée depuis l'instance : recensement initial, sorties et capacité sont comparés ligne à ligne ;
+    \item la disponibilité et la qualification de chaque agent affecté ;
+    \item l'absence de double affectation journalière ;
+    \item le nombre maximal de postes ;
+    \item le repos minimal et les nuits consécutives ;
+    \item la dotation minimale de chaque service ouvert.
+\end{enumerate}
+
+Le troisième contrôle renforce une première version qui ne vérifiait que le bilan interne du plan : ce bilan est toujours juste pour une méthode qui en déduit elle-même ses sorties. Le déficit de cible est compté à part et n'invalide un plan que sous la politique \texttt{strict}. L'interface n'affiche donc jamais « solution valide », mais « contraintes respectées » accompagné du pourcentage de postes cibles couverts :
+\begin{equation}
+    \text{Postes couverts} = 1 - \frac{\sum_{s,t,k,r} \max(\text{cible} - \text{affectés},\, 0)}{\sum_{s,t,k,r} \text{cible}}
+\end{equation}
+
+Un surplus d'effectif sur un besoin ne compense pas un manque sur un autre.
+
+% ------------------------------------------------------------------------------
+\section{Conception des Scénarios}
+% ------------------------------------------------------------------------------
+
+Les six scénarios modifient l'instance de référence sans toucher aux paramètres du modèle.
+
+\input{tables/scenarios}
+
+Les \textbf{scénarios personnalisés} du simulateur utilisent le même mécanisme : multiplicateur d'admissions de 1 à 2, absences et fermetures de 0 à 50\,\%, globalement ou pour un service. Ils reçoivent un identifiant \texttt{CUSTOM\_} et ne sont jamais comptés avec $S_0$ à $S_5$.
+
+% ------------------------------------------------------------------------------
+\section{Conception de l'Interface Utilisateur Web}
+% ------------------------------------------------------------------------------
+
+Le tableau de bord comporte \textbf{dix vues}, accessibles par une barre latérale :
+\begin{enumerate}
+    \item \textbf{Vue d'ensemble} : indicateurs d'une expérience et d'une méthode ;
+    \item \textbf{Comparaison scénarios} : méthodes, scénarios et profils côte à côte ;
+    \item \textbf{Exploration des données} : données synthétiques et instance ;
+    \item \textbf{Prévisions} : prévisions et erreurs des modèles ;
+    \item \textbf{Allocation} : lits, postes manquants, couverture RH et planning du personnel ;
+    \item \textbf{Méthodes} : comparaison des méthodes d'une expérience ;
+    \item \textbf{Scénarios} : définition des scénarios ;
+    \item \textbf{Simulateur} : scénario personnalisé calculé à la demande ;
+    \item \textbf{Sensibilité} : lecture de la grille de \NbCas{} cas ;
+    \item \textbf{Expériences et export} : expériences enregistrées et téléchargements.
+\end{enumerate}
+
+Deux règles guident l'affichage : aucune vue ne lance de calcul à son ouverture, et une valeur absente donne un état vide explicite.
+
+% ------------------------------------------------------------------------------
+\section*{Conclusion du Chapitre}
+\addcontentsline{toc}{section}{Conclusion du Chapitre}
+% ------------------------------------------------------------------------------
+Ce chapitre a fixé le modèle : cohortes de patients, lits, dotation minimale dure, cible de personnel assouplie par un déficit, règles individuelles et objectif pondéré selon trois profils. Le validateur est séparé des méthodes et les deux notions de contraintes respectées et de postes couverts ne sont pas confondues. Le chapitre suivant décrit leur mise en œuvre.

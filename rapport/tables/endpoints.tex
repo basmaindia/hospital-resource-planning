@@ -1,0 +1,28 @@
+% Généré par rapport/scripts/generate_tables.py : ne pas modifier à la main.
+\begin{table}[H]
+    \centering
+    \caption{Les 16 points d'accès de l'API, extraits de sa description OpenAPI.}
+    \label{tab:endpoints}
+    \resizebox{\textwidth}{!}{\begin{tabular}{lp{8.2cm}p{8.4cm}}
+        \toprule
+        \textbf{Verbe} & \textbf{Route} & \textbf{Rôle} \\
+        \midrule
+        \texttt{GET} & \texttt{/\allowbreak health} & Expose l'état minimal du service sans déclencher de calcul. \\
+        \texttt{GET} & \texttt{/\allowbreak api/\allowbreak v1/\allowbreak config/\allowbreak hospital} & Retourne la configuration validée de l'hôpital synthétique. \\
+        \texttt{POST} & \texttt{/\allowbreak api/\allowbreak v1/\allowbreak jobs/\allowbreak experiments} & Soumet un job explicite. \\
+        \texttt{GET} & \texttt{/\allowbreak api/\allowbreak v1/\allowbreak jobs/\allowbreak \{job\_id\}} & Retourne l'état réel d'un job local sans jamais le relancer. \\
+        \texttt{GET} & \texttt{/\allowbreak api/\allowbreak v1/\allowbreak experiments} & Liste les expériences déjà stockées. \\
+        \texttt{GET} & \texttt{/\allowbreak api/\allowbreak v1/\allowbreak experiments/\allowbreak \{experiment\_id\}} & Retourne les métadonnées et KPI d'une expérience stockée, sans calcul. \\
+        \texttt{GET} & \texttt{/\allowbreak api/\allowbreak v1/\allowbreak dashboard/\allowbreak scenario-comparison} & Agrège les KPI persistés d'une seule expérience par scénario, pour un profil. \\
+        \texttt{GET} & \texttt{/\allowbreak api/\allowbreak v1/\allowbreak experiments/\allowbreak \{experiment\_id\}/\allowbreak downloads/\allowbreak \{artifact\_path\}} & Télécharge un artefact existant après contrôle strict du chemin. \\
+        \texttt{GET} & \texttt{/\allowbreak api/\allowbreak v1/\allowbreak dashboard/\allowbreak scenarios} & Expose les scénarios déclarés, sans les transformer ni les exécuter. \\
+        \texttt{GET} & \texttt{/\allowbreak api/\allowbreak v1/\allowbreak dashboard/\allowbreak profiles} & Expose les profils de pondération. \\
+        \texttt{GET} & \texttt{/\allowbreak api/\allowbreak v1/\allowbreak dashboard/\allowbreak sensitivity/\allowbreak manifest} & Expose le manifeste déjà produit, sans déclencher la grille coûteuse. \\
+        \texttt{GET} & \texttt{/\allowbreak api/\allowbreak v1/\allowbreak dashboard/\allowbreak sensitivity/\allowbreak results} & Lit les KPI de sensibilité déjà calculés pour un profil, sans lancer de calcul. \\
+        \texttt{GET} & \texttt{/\allowbreak api/\allowbreak v1/\allowbreak dashboard/\allowbreak forecasts} & Lit les prévisions finales et métriques enregistrées, sans les recalculer. \\
+        \texttt{GET} & \texttt{/\allowbreak api/\allowbreak v1/\allowbreak dashboard/\allowbreak exploration} & Lit les séries synthétiques historiques nécessaires aux graphiques d'exploration. \\
+        \texttt{GET} & \texttt{/\allowbreak api/\allowbreak v1/\allowbreak dashboard/\allowbreak operational/\allowbreak \{scenario\_id\}} & Lit une instance canonique opérationnelle, sans déclencher de décision. \\
+        \texttt{GET} & \texttt{/\allowbreak api/\allowbreak v1/\allowbreak dashboard/\allowbreak experiments/\allowbreak \{experiment\_id\}/\allowbreak methods/\allowbreak \{method\_name\}} & Lit les allocations et la couverture RH d'une méthode déjà terminée. \\
+        \bottomrule
+    \end{tabular}}
+\end{table}

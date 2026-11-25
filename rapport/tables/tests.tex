@@ -1,0 +1,35 @@
+% Généré par rapport/scripts/generate_tables.py : ne pas modifier à la main.
+\begin{table}[H]
+    \centering
+    \caption{Tests automatisés du projet.}
+    \label{tab:tests}
+    \resizebox{\textwidth}{!}{\begin{tabular}{lcl}
+        \toprule
+        \textbf{Fichier} & \textbf{Tests} & \textbf{Objet} \\
+        \midrule
+        \texttt{test\_api\_contract.py} & 8 & Contrat de l'API, lecture des artefacts, traversée de chemin \\
+        \texttt{test\_config\_contracts.py} & 5 & Validation de la configuration \\
+        \texttt{test\_data\_validation.py} & 1 & Contrôles de qualité des données \\
+        \texttt{test\_forecasting.py} & 5 & Prévisions chronologiques, métriques, absence de fuite \\
+        \texttt{test\_generator.py} & 3 & Reproductibilité du générateur \\
+        \texttt{test\_greedy\_and\_validator.py} & 10 & Greedy, validateur, occupation du premier jour \\
+        \texttt{test\_occupancy.py} & 1 & Conservation des patients \\
+        \texttt{test\_operational\_requirements.py} & 6 & Instance opérationnelle et empreinte de demande \\
+        \texttt{test\_portability.py} & 5 & Chemins relatifs, empreinte indépendante du système \\
+        \texttt{test\_profiles\_and\_naive.py} & 16 & Stratégie naïve, profils, équité sans les absents \\
+        \texttt{test\_scenario\_comparison.py} & 4 & Comparaison par graine et par profil \\
+        \texttt{test\_scenarios.py} & 4 & Transformations des scénarios \\
+        \texttt{test\_sensitivity.py} & 5 & Grille de sensibilité et fusion des résultats \\
+        \texttt{test\_simulator.py} & 11 & Scénarios personnalisés, isolement de S0--S5 \\
+        \texttt{test\_solver\_settings.py} & 9 & Budget, borne, gap et statut prouvé des solveurs \\
+        \texttt{test\_solver\_smoke.py} & 2 & Disponibilité des solveurs \\
+        \midrule
+        \textbf{Total Python (pytest)} & \textbf{95} &  \\
+        \midrule
+        \texttt{dashboard.spec.ts} & 1 & Ouverture des dix vues, sans calcul automatique \\
+        \texttt{simulator.spec.ts} & 3 & Simulateur, cas irréalisable, comparaison et profils \\
+        \midrule
+        \textbf{Total navigateur (Playwright)} & \textbf{4} &  \\
+        \bottomrule
+    \end{tabular}}
+\end{table}

@@ -1,0 +1,78 @@
+\chapter*{Annexes Techniques}
+\addcontentsline{toc}{chapter}{Annexes Techniques}
+
+\section*{Annexe A : Dictionnaire des Données et Configuration}
+\markboth{ANNEXES TECHNIQUES}{ANNEXE A : DICTIONNAIRE DES DONNÉES}
+
+\subsection*{Configuration de l'Établissement (\texttt{configs/hospital.json})}
+L'extrait suivant est produit depuis le fichier de configuration :
+\lstinputlisting[language=json, caption={Extrait de la configuration de l'établissement.}]{tables/hospital_extrait.json}
+
+\subsection*{Structure de la Table des Admissions}
+Le tableau~\ref{tab:dictionnaire} décrit les colonnes de \texttt{data/synthetic/historical\_demand.csv}.
+
+\input{tables/dictionnaire}
+
+\newpage
+\section*{Annexe B : Guide d'Exploitation et Commandes}
+\markboth{ANNEXES TECHNIQUES}{ANNEXE B : GUIDE D'EXPLOITATION}
+
+Les commandes sont données pour Windows PowerShell, depuis la racine du projet.
+
+\subsection*{Installation}
+\begin{lstlisting}[caption={Installation de l'environnement.}]
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install . pytest pytest-cov ruff httpx
+$env:PYTHONPATH = "src"
+cd frontend
+npm.cmd install
+\end{lstlisting}
+
+\subsection*{Chaîne de Calcul}
+\begin{lstlisting}[caption={Commandes de la chaîne de calcul.}]
+# 1. Donnees synthetiques et rapport de qualite
+.\.venv\Scripts\python.exe -m hospital_planning.data.generator
+
+# 2. Comparaison des modeles et previsions J+1 a J+7
+.\.venv\Scripts\python.exe -m hospital_planning.forecasting.evaluation
+
+# 3. Instance operationnelle S0
+.\.venv\Scripts\python.exe -m hospital_planning.operational.requirements
+
+# 4. Comparaison complete (environ 32 minutes)
+.\.venv\Scripts\python.exe -m hospital_planning.experiments.runner --methods naive greedy milp cp_sat --profiles equilibre priorite_accueil priorite_personnel
+
+# 5. Grille de sensibilite, Naive et Greedy (environ 100 secondes)
+.\.venv\Scripts\python.exe -m hospital_planning.experiments.sensitivity
+
+# 6. Tableaux et chiffres de ce rapport
+.\.venv\Scripts\python.exe rapport/scripts/generate_tables.py
+\end{lstlisting}
+
+\subsection*{API et Tableau de Bord}
+\begin{lstlisting}[caption={Lancement de l'API et du tableau de bord (deux terminaux).}]
+# Terminal 1 : API, documentation sur http://127.0.0.1:8000/docs
+.\.venv\Scripts\python.exe -m uvicorn hospital_planning.api.app:app --host 127.0.0.1 --port 8000
+
+# Terminal 2 : tableau de bord sur http://localhost:3011
+cd frontend
+npm.cmd run dev
+\end{lstlisting}
+
+\subsection*{Contrôles}
+\begin{lstlisting}[caption={Tests et analyse statique.}]
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m ruff check src tests
+cd frontend
+npm.cmd run typecheck
+npm.cmd run lint
+npm.cmd run test
+\end{lstlisting}
+
+\newpage
+\section*{Annexe C : Grille de Sensibilité Complète (80 Cas)}
+\markboth{ANNEXES TECHNIQUES}{ANNEXE C : GRILLE DE SENSIBILITÉ}
+
+Le tableau~\ref{tab:sensibilite_complete} donne les résultats de Greedy. Les cas dont les contraintes ne sont pas respectées ne décrivent pas un plan réalisable.
+
+\input{tables/sensibilite_complete}

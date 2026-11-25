@@ -1,0 +1,20 @@
+% Généré par rapport/scripts/generate_tables.py : ne pas modifier à la main.
+\begin{table}[H]
+    \centering
+    \caption{Définition des six scénarios (\texttt{configs/scenarios.json}).}
+    \label{tab:scenarios}
+    \resizebox{\textwidth}{!}{\begin{tabular}{llp{5.2cm}cc}
+        \toprule
+         & \textbf{Identifiant} & \textbf{Admissions demandées} & \textbf{Absences ajoutées} & \textbf{Lits fermés} \\
+        \midrule
+        $S_0$ & \texttt{S0\_BASELINE} & $\times$1{,}00, tous services & 0\,\% & 0\,\% \\
+        $S_1$ & \texttt{S1\_URGENT\_PEAK} & URG $\times$1{,}50, 2 premiers jours & 0\,\% & 0\,\% \\
+        $S_2$ & \texttt{S2\_GENERAL\_SURGE} & $\times$1{,}25, tous services & 0\,\% & 0\,\% \\
+        $S_3$ & \texttt{S3\_STAFF\_ABSENCE} & $\times$1{,}00, tous services & 15\,\% & 0\,\% \\
+        $S_4$ & \texttt{S4\_COMBINED\_CRISIS} & $\times$1{,}25, tous services & 15\,\% & 0\,\% \\
+        $S_5$ & \texttt{S5\_BED\_CLOSURE} & $\times$1{,}00, tous services & 0\,\% & 10\,\% \\
+        \bottomrule
+    \end{tabular}}
+    \par\vspace{3pt}
+    {\footnotesize Absences : part des professionnels disponibles rendus indisponibles sur tout l'horizon (tirage fixé par la graine). Lits fermés : réduction de la capacité de chaque service, arrondie à l'entier inférieur.}
+\end{table}

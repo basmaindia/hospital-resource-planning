@@ -1,0 +1,17 @@
+% Généré par rapport/scripts/generate_tables.py : ne pas modifier à la main.
+\begin{table}[H]
+    \centering
+    \caption{Postes cibles couverts en $S_0$ par service et par poste, profil équilibré.}
+    \label{tab:couverture_s0}
+    \small
+    \begin{tabular}{lcccc|ccc|c}
+        \toprule
+        \textbf{Méthode} & \textbf{URG} & \textbf{MED} & \textbf{REA} & \textbf{CHI} & \textbf{Matin} & \textbf{Soir} & \textbf{Nuit} & \textbf{Total} \\
+        \midrule
+        Naïve & 36\,\% & 35\,\% & 49\,\% & 51\,\% & 43\,\% & 44\,\% & 37\,\% & \textbf{41{,}2\,\%} \\
+        Greedy & 48\,\% & 20\,\% & 90\,\% & 64\,\% & 61\,\% & 50\,\% & 33\,\% & \textbf{48{,}3\,\%} \\
+        MILP/CBC & 30\,\% & 26\,\% & 91\,\% & 86\,\% & 53\,\% & 49\,\% & 50\,\% & \textbf{50{,}6\,\%} \\
+        CP-SAT & 45\,\% & 25\,\% & 93\,\% & 70\,\% & 59\,\% & 54\,\% & 41\,\% & \textbf{51{,}1\,\%} \\
+        \bottomrule
+    \end{tabular}
+\end{table}

@@ -1,0 +1,125 @@
+\chapter{Étude Technique et Choix Technologiques}
+\label{ch:etude_technique}
+
+La conception d'un système d'aide à la décision pour la planification hospitalière assemble plusieurs briques : modèles de prévision, méthodes d'optimisation, service web et interface de visualisation.
+
+Ce chapitre présente les méthodes et les outils retenus, les raisons de ces choix et un tableau de synthèse. Les solutions non retenues sont citées comme alternatives ; elles n'ont pas fait l'objet de mesures comparatives dans le projet.
+
+% ------------------------------------------------------------------------------
+\section{Étude et Choix des Outils et Technologies}
+% ------------------------------------------------------------------------------
+
+\subsection{Méthodes d'Optimisation}
+Le projet compare quatre méthodes sur les mêmes instances : deux heuristiques rapides et deux solveurs. Cette comparaison permet de mesurer ce qu'apporte un solveur par rapport à une règle simple.
+
+\subsubsection{Stratégie Naïve}
+La stratégie naïve sert de \textbf{point de comparaison bas}. Chaque jour, un taux d'acceptation unique s'applique à tous les services ; le personnel est ensuite partagé proportionnellement aux cibles, sans service prioritaire.
+\begin{itemize}
+    \item \textbf{Avantages} : déterministe, rapide et facile à expliquer ;
+    \item \textbf{Limites} : les postes qu'un service ne peut pas pourvoir ne sont pas redistribués aux autres.
+\end{itemize}
+
+\subsubsection{Heuristique Gloutonne (\emph{Greedy})}
+L'heuristique gloutonne est la \textbf{référence} de la comparaison. Elle accepte autant d'admissions que de lits libres, puis affecte le personnel jour par jour, dans l'ordre de priorité $\text{REA} \succ \text{URG} \succ \text{CHI} \succ \text{MED}$, en deux passes : dotation minimale, puis cible.
+\begin{itemize}
+    \item \textbf{Avantages} : déterministe, calculée en moins de deux secondes, sans solveur ;
+    \item \textbf{Limites} : choix locaux non remis en cause ; aucun refus n'est envisagé pour réduire le déficit de personnel.
+\end{itemize}
+
+\subsubsection{Programmation Linéaire en Nombres Entiers (MILP -- PuLP / CBC)}
+Le problème est décrit par des variables entières et binaires et par des contraintes linéaires~\cite{wolsey2020}.
+\begin{itemize}
+    \item \textbf{Outil retenu} : la bibliothèque Python \textbf{PuLP}~\cite{mitchell2011} avec le solveur libre \textbf{CBC}~\cite{cbc} ;
+    \item \textbf{Justification} : outils libres, formulation lisible, et \emph{gap} : écart entre la solution trouvée et une borne sur l'optimum.
+\end{itemize}
+
+\subsubsection{Programmation par Contraintes (CP-SAT -- Google OR-Tools)}
+La programmation par contraintes propage des règles logiques sur des variables entières~\cite{rossi2006}.
+\begin{itemize}
+    \item \textbf{Outil retenu} : le solveur \textbf{CP-SAT} de Google OR-Tools~\cite{ortools} ;
+    \item \textbf{Justification} : adapté aux variables binaires et aux incompatibilités entre postes, recherche parallèle, borne inférieure fournie ;
+    \item \textbf{Limite} : avec plusieurs threads et un budget de temps, deux exécutions peuvent donner deux plans différents.
+\end{itemize}
+
+\begin{notebox}{« Solveur exact » ne signifie pas « optimum trouvé »}
+CBC et CP-SAT sont capables de prouver l'optimalité, mais ils sont arrêtés après \TempsSolveur{} secondes. Sauf preuve terminée dans ce budget, leur résultat est une solution réalisable accompagnée d'un gap. Le statut \texttt{OPTIMAL} n'est accordé que si la recherche est allée à son terme.
+\end{notebox}
+
+\subsection{Science des Données et Modèles de Prévision}
+Les admissions journalières de chaque service sont prévues de $J+1$ à $J+7$. Cinq modèles sont comparés~\cite{hyndman2021} :
+\begin{enumerate}
+    \item \textbf{Modèle naïf} : répète la dernière valeur observée ;
+    \item \textbf{Modèle naïf saisonnier} : répète la valeur du même jour de la semaine précédente (période 7) ;
+    \item \textbf{Moyenne mobile} : moyenne des 7 derniers jours observés ;
+    \item \textbf{Lissage exponentiel simple} : moyenne à poids décroissants dans le temps ;
+    \item \textbf{Régression à retards} : régression de type Ridge à coefficients positifs, utilisant les valeurs à 1, 7 et 14 jours, les moyennes des 7 et 28 derniers jours, le jour de la semaine et les jours fériés synthétiques. Les événements exceptionnels sont exclus, car ils ne seraient pas connus au moment de prévoir.
+\end{enumerate}
+
+La \textbf{régression à retards} est retenue pour les quatre services, car elle a la plus faible erreur WAPE de validation (tableau~\ref{tab:previsions_validation}). Le chapitre~\ref{ch:tests_validation_resultats} montre que cet avantage n'est pas confirmé partout sur le test final.
+
+\subsection{Framework Backend et API REST (Python FastAPI)}
+Trois cadres Python ont été envisagés :
+\begin{itemize}
+    \item \textbf{Django} : complet, mais orienté vers des applications à base de données, absentes du projet ;
+    \item \textbf{Flask} : léger, mais la validation des échanges demande des extensions ;
+    \item \textbf{FastAPI (choix retenu)} : cadre fondé sur les annotations de type et sur \textbf{Pydantic v2}~\cite{fastapi,pydantic}.
+\end{itemize}
+
+\textbf{Justifications du choix de FastAPI :}
+\begin{enumerate}
+    \item \textbf{Contrats validés} : les requêtes et les réponses sont contrôlées par des schémas, qui servent aussi à la configuration et aux résultats ;
+    \item \textbf{Réponse immédiate aux calculs longs} : un calcul est soumis comme un \emph{job}, exécuté par un \texttt{ThreadPoolExecutor} à un seul travailleur afin que deux solveurs ne se disputent pas le processeur ;
+    \item \textbf{Documentation interactive} : Swagger UI (\texttt{/docs}) est générée depuis la description OpenAPI.
+\end{enumerate}
+
+\subsection{Interface Web et Visualisation}
+\begin{itemize}
+    \item \textbf{Next.js 15 et React 19}~\cite{nextjs,react} : application d'une page, dont la barre latérale donne accès à dix vues ;
+    \item \textbf{TypeScript} : types partagés par toutes les vues (\texttt{api-types.ts}) ;
+    \item \textbf{Tailwind CSS}~\cite{tailwindcss} et une feuille de style (\texttt{globals.css}) : mise en page ;
+    \item \textbf{Graphiques SVG} : courbes, barres et cartes de chaleur sont écrites directement en composants React, sans bibliothèque graphique.
+\end{itemize}
+
+\subsection{Stockage et Environnement d'Exécution}
+Le projet n'utilise pas de base de données : les données et les résultats sont des fichiers CSV et JSON, dont les chemins sont enregistrés de façon relative. L'API et le tableau de bord s'exécutent localement, sur les ports 8000 et 3011. Aucun déploiement en production n'est fourni.
+
+\subsection{Outils de Qualité}
+Les tests Python utilisent \textbf{pytest} et l'analyse statique \textbf{ruff} ; l'interface est contrôlée par le compilateur TypeScript, \textbf{ESLint} et des parcours \textbf{Playwright} dans un navigateur.
+
+% ------------------------------------------------------------------------------
+\section{Synthèse des Choix Technologiques}
+% ------------------------------------------------------------------------------
+
+Le tableau~\ref{tab:synthese_techno} récapitule les choix, avec les versions installées lors de la rédaction.
+
+\begin{table}[H]
+    \centering
+    \caption{Synthèse des choix technologiques.}
+    \label{tab:synthese_techno}
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{lp{4.4cm}p{3.6cm}p{6.4cm}}
+        \toprule
+        \textbf{Composant} & \textbf{Technologie retenue} & \textbf{Alternatives} & \textbf{Raison principale} \\
+        \midrule
+        \textbf{Langage principal} & Python 3.13.2 (3.12 au minimum) & Java, Julia & Bibliothèques de données et d'optimisation. \\
+        \textbf{Données} & pandas 2.3.3, NumPy 2.5.5 & Base de données & Fichiers lisibles et versionnables. \\
+        \textbf{Prévision} & scikit-learn 1.9.1, statsmodels 0.15.0 & Réseaux de neurones & Modèles simples, rapides et explicables. \\
+        \textbf{Solveur MILP} & PuLP 4.3.1 et CBC & Solveurs commerciaux & Outils libres. \\
+        \textbf{Solveur CP} & OR-Tools CP-SAT 9.15 & Autres solveurs CP & Recherche parallèle et borne inférieure. \\
+        \textbf{Heuristiques} & Naïve et Greedy & -- & Références rapides et déterministes. \\
+        \textbf{API} & FastAPI 0.165.0, Uvicorn 0.54.0 & Flask, Django & Contrats typés et documentation OpenAPI. \\
+        \textbf{Schémas} & Pydantic 2.14.4 & Contrôles manuels & Validation de la configuration et des échanges. \\
+        \textbf{Interface} & Next.js 15.5.28, React 19.3.1 & Vue.js, React seul & Composants et outillage TypeScript. \\
+        \textbf{Style} & Tailwind CSS 3.4.19 & Bootstrap & Mise en page légère. \\
+        \textbf{Graphiques} & SVG dans React & Bibliothèque graphique & Contrôle de l'affichage et des états vides. \\
+        \textbf{Tests} & pytest 9.2.0, Playwright 1.64.1 & -- & Contrôle du calcul et des parcours. \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}
+
+% ------------------------------------------------------------------------------
+\section*{Conclusion du Chapitre}
+\addcontentsline{toc}{section}{Conclusion du Chapitre}
+% ------------------------------------------------------------------------------
+Les outils retenus sont libres et s'exécutent sur un poste de travail. Deux heuristiques déterministes donnent une réponse immédiate, deux solveurs la complètent dans un budget de temps fixé, et l'ensemble est servi par une API typée et un tableau de bord Next.js. Le chapitre suivant formalise le problème que ces méthodes résolvent.

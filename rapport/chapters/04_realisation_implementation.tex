@@ -1,0 +1,239 @@
+\chapter{Réalisation et Implémentation}
+\label{ch:realisation_implementation}
+
+La réalisation traduit le modèle du chapitre précédent en un logiciel modulaire, testé et utilisable depuis un navigateur.
+
+Ce chapitre décrit l'organisation du code, l'implémentation des données, des prévisions, des quatre méthodes et du validateur, puis l'API FastAPI et les principales vues du tableau de bord, dont l'allocation, le simulateur et la sensibilité.
+
+% ------------------------------------------------------------------------------
+\section{Environnement de Développement et Organisation du Projet}
+% ------------------------------------------------------------------------------
+
+Le projet réunit dans un même dépôt le moteur Python, l'API et le tableau de bord :
+
+\begin{lstlisting}[caption={Structure arborescente du projet (fichiers principaux).}]
+hospital-resource-planning/
+|-- configs/                  # hospital.json, scenarios.json, profiles.json
+|-- data/synthetic/           # Donnees synthetiques et rapport de qualite
+|-- docs/                     # Modele, solveurs, experiences, dashboard
+|-- src/hospital_planning/
+|   |-- domain/               # contracts.py, enums.py (schemas Pydantic)
+|   |-- config/               # loader.py
+|   |-- data/                 # generator.py, occupancy.py, validation.py
+|   |-- forecasting/          # baselines, statistical, machine_learning, evaluation
+|   |-- operational/          # requirements.py (instance commune)
+|   |-- optimization/         # naive, greedy, exact, objective, validator, availability
+|   |-- experiments/          # scenarios.py, runner.py, sensitivity.py
+|   |-- solvers/              # smoke.py (disponibilite des solveurs)
+|   \-- api/                  # app.py, jobs.py
+|-- frontend/
+|   |-- app/                  # layout.tsx, page.tsx, globals.css
+|   |-- components/           # dashboard, staffing, simulator, sensitivity
+|   |-- lib/                  # api-client.ts, api-types.ts
+|   \-- tests/                # Parcours Playwright
+|-- results/                  # Previsions, instance S0, experiences
+|-- scripts/                  # verify_api.ps1
+\-- tests/                    # Tests pytest
+\end{lstlisting}
+
+Les chemins écrits dans les artefacts sont relatifs et utilisent le séparateur \texttt{/}, afin qu'une expérience calculée sous Windows soit lisible sous Linux ou macOS.
+
+% ------------------------------------------------------------------------------
+\section{Implémentation des Données et des Prévisions}
+% ------------------------------------------------------------------------------
+
+\subsection{Générateur de Données (\texttt{data/generator.py})}
+Le générateur lit \texttt{configs/hospital.json} et écrit six tables CSV : demande, capacité, occupation, personnel, disponibilité et besoins en personnel. La graine (42) rend le résultat reproductible. Le module \texttt{occupancy.py} en déduit sorties et occupation à partir des durées de séjour, et \texttt{validation.py} produit le rapport de qualité sans corriger les données.
+
+\subsection{Prévision (\texttt{forecasting/})}
+Les cinq modèles sont répartis dans \texttt{baselines.py} (naïf, naïf saisonnier, moyenne mobile), \texttt{statistical.py} (lissage exponentiel) et \texttt{machine\_learning.py} (régression à retards). Le listing suivant montre les variables de la régression, toutes calculées à partir du passé ou du calendrier :
+
+\begin{lstlisting}[language=Python, caption={Variables explicatives de la régression à retards (extrait de \texttt{machine\_learning.py}).}]
+weekday = date.weekday()
+return [
+    values[-1],
+    values[-7],
+    values[-14],
+    float(np.mean(values[-7:])),
+    float(np.mean(values[-28:])),
+    *(1.0 if weekday == day else 0.0 for day in range(1, 7)),
+    float(date.strftime("%m-%d") in holiday_month_days),
+]
+\end{lstlisting}
+
+Le module \texttt{evaluation.py} calcule MAE, RMSE, WAPE et biais, choisit le modèle de chaque service et enregistre les prévisions de $J+1$ à $J+7$. Les prévisions restent continues ; leur conversion en admissions entières (arrondi supérieur) a lieu une seule fois, dans \texttt{operational/requirements.py}.
+
+% ------------------------------------------------------------------------------
+\section{Implémentation des Quatre Méthodes}
+% ------------------------------------------------------------------------------
+
+\subsection{Stratégie Naïve (\texttt{naive.py})}
+Chaque jour, les lits libres de l'hôpital sont répartis au prorata des demandes par la méthode des plus forts restes, dans la limite des lits de chaque service. Le personnel est partagé de la même façon après la dotation minimale. À reste égal, l'ordre des clés départage, ce qui rend le résultat déterministe.
+
+\subsection{Heuristique Gloutonne (\texttt{greedy.py})}
+Pour chaque service et chaque jour, l'heuristique applique les sorties, accepte autant d'admissions que de lits libres et ouvre exactement les lits occupés. Elle remplit ensuite tous les besoins minimaux, puis les cibles. Un agent n'est retenu que s'il respecte disponibilité, qualification, nombre de postes, repos et nuits consécutives.
+
+\subsection{MILP avec PuLP et CBC (\texttt{exact.py})}
+Les variables d'affectation ne sont créées que pour les couples disponibles et qualifiés, ce qui réduit la taille du modèle. L'extrait suivant montre le lien entre lits ouverts, dotation minimale et cible :
+
+\begin{lstlisting}[language=Python, caption={Dotation minimale et cible de personnel (extrait de \texttt{exact.py}).}]
+minimum = config.synthetic_data.minimum_staff_by_role[role]
+ratio = config.synthetic_data.staff_per_ten_beds[role]
+shortage = variables["shortage"][(service, date_index, shift, role)]
+model += staffed >= minimum * open_indicator
+model += 10 * (staffed + shortage) >= ratio * opened
+\end{lstlisting}
+
+Trois précautions ont été nécessaires avec CBC :
+\begin{itemize}
+    \item \textbf{Statut} : CBC peut annoncer un optimum alors que sa recherche a été interrompue ; le statut \texttt{OPTIMAL} n'est retenu que si le journal confirme une recherche terminée ;
+    \item \textbf{Borne} : la meilleure borne est lue dans le journal, puis corrigée du terme constant de l'objectif, pour calculer le gap ;
+    \item \textbf{Arrêt anormal} : certaines graines déclenchent une erreur interne de CBC ; le calcul est relancé avec la graine suivante, dans le temps restant. Cela s'est produit pour \NbReprisesCbc{} résultat sur 18.
+\end{itemize}
+
+\subsection{CP-SAT avec OR-Tools (\texttt{exact.py})}
+CP-SAT résout la même formulation. Le plan Greedy lui est donné comme indication de départ (\emph{hint}), et la recherche utilise \ThreadsSolveur{} threads. La graine est fixée, mais la recherche parallèle limitée en temps n'est pas reproductible à l'identique.
+
+\subsection{Budget des Solveurs}
+Le budget (\TempsSolveur{} secondes et \ThreadsSolveur{} threads par solveur) est lu dans \texttt{hospital.json}, et peut être modifié en ligne de commande (\texttt{-{}-time-limit}, \texttt{-{}-workers}) ou dans une requête à l'API. Les deux solveurs tiennent ensemble dans deux minutes par scénario et par profil.
+
+% ------------------------------------------------------------------------------
+\section{Implémentation du Validateur de Contraintes (\texttt{validator.py})}
+% ------------------------------------------------------------------------------
+
+Le validateur lit les tables produites par une méthode. Le contrôle des cohortes rejoue la dynamique depuis l'instance :
+
+\begin{lstlisting}[language=Python, caption={Contrôle des cohortes par le validateur (extrait de \texttt{validator.py}).}]
+discharges = max(int(expected["expected_discharges"]) - rejected.get(row.date - stay, 0), 0)
+consistent = (
+    int(row.occupancy_start) == census
+    and int(row.expected_discharges) == discharges
+    and int(row.capacity_available) == int(expected["capacity_available"])
+)
+violations += int(not consistent)
+\end{lstlisting}
+
+Chaque famille de violations a son compteur dans \texttt{method\_result.json}. La table \texttt{staff\_coverage.csv}, construite au même moment, donne pour chaque service, jour, poste et rôle le minimum, la cible, l'effectif affecté et le déficit ; elle alimente la vue Allocation.
+
+% ------------------------------------------------------------------------------
+\section{Expériences et Profils (\texttt{experiments/})}
+% ------------------------------------------------------------------------------
+
+\begin{itemize}
+    \item \textbf{Scénarios} : \texttt{scenarios.py} transforme l'instance de référence sans la modifier et calcule une empreinte SHA-256 des entrées, indépendante du système d'exploitation ;
+    \item \textbf{Expériences} : \texttt{runner.py} enregistre une expérience par scénario et par profil. Relancer une méthode remplace son seul résultat ;
+    \item \textbf{Sensibilité} : \texttt{sensitivity.py} calcule la grille de \NbCas{} cas et fusionne les résultats dans \texttt{sensitivity\_results.csv} ;
+    \item \textbf{Traçabilité} : chaque résultat porte la graine, le profil, les poids, le budget, le statut du solveur et la date.
+\end{itemize}
+
+% ------------------------------------------------------------------------------
+\section{Implémentation de l'API REST FastAPI (\texttt{api/app.py})}
+% ------------------------------------------------------------------------------
+
+\subsection{Points d'Accès}
+L'API expose \NbEndpoints{} points d'accès (tableau~\ref{tab:endpoints}). Les lectures ne déclenchent jamais de calcul : seule la requête \texttt{POST} sur \texttt{/api/v1/jobs/experiments} en lance un.
+
+\input{tables/endpoints}
+
+\begin{figure}[H]
+    \centering
+    \captureimg{swagger_ui}
+    \caption{Documentation interactive de l'API (Swagger UI, \texttt{/docs}).}
+    \label{fig:swagger}
+\end{figure}
+
+\subsection{Gestion des Calculs Longs (\texttt{api/jobs.py})}
+Un calcul soumis reçoit immédiatement une réponse \texttt{202} avec un identifiant de job. Il passe par les états \texttt{QUEUED}, \texttt{RUNNING}, puis \texttt{COMPLETED} ou \texttt{FAILED}. Un seul travailleur exécute les jobs, l'un après l'autre :
+
+\begin{lstlisting}[language=Python, caption={File d'exécution à un seul travailleur (extrait de \texttt{jobs.py}).}]
+self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="hospital-job")
+
+def submit(self, task: Callable[[], list[str]]) -> JobResponse:
+    job_id = f"job-{uuid4().hex}"
+    record = JobRecord(job_id=job_id, created_at=datetime.now(UTC))
+    with self._lock:
+        self._records[job_id] = record
+    self._executor.submit(self._run, record, task)
+    return record.response()
+\end{lstlisting}
+
+L'état des jobs est gardé en mémoire : il est perdu au redémarrage de l'API, mais les expériences terminées restent sur disque.
+
+\subsection{Contrôles d'Accès aux Fichiers et aux Origines}
+Le chemin d'un téléchargement est résolu, puis refusé s'il sort du dossier de l'expérience :
+
+\begin{lstlisting}[language=Python, caption={Contrôle du chemin avant téléchargement (extrait de \texttt{app.py}).}]
+directory = _experiment_directory(experiment_id)
+artifact = (directory / artifact_path).resolve()
+if not artifact.is_relative_to(directory) or not artifact.is_file():
+    raise HTTPException(status_code=404, detail="Artefact introuvable.")
+return FileResponse(artifact, filename=artifact.name)
+\end{lstlisting}
+
+Les origines CORS sont explicites et configurables (\texttt{HOSPITAL\_CORS\_ORIGINS}). Un profil ou un service inconnu donne une erreur \texttt{422}. L'API n'a pas d'authentification : elle est prévue pour un usage local.
+
+% ------------------------------------------------------------------------------
+\section{Réalisation du Tableau de Bord (Next.js 15)}
+% ------------------------------------------------------------------------------
+
+Le tableau de bord est une page unique ; la barre latérale ouvre l'une des dix vues, et une barre de filtres choisit le service, le scénario, l'expérience et la méthode. Toutes les valeurs viennent de l'API.
+
+\subsection{Vue d'Ensemble}
+\begin{figure}[H]
+    \centering
+    \captureimg{dashboard_overview}
+    \caption{Vue d'ensemble : indicateurs d'une expérience et d'une méthode.}
+    \label{fig:overview}
+\end{figure}
+
+La vue affiche séparément les admissions, les refus, les lits ouverts et les postes cibles couverts. La mention « contraintes respectées » est toujours accompagnée de ce dernier indicateur.
+
+\subsection{Vue Comparaison Scénarios}
+La vue compare les quatre méthodes sur les six scénarios, pour un profil choisi dans un sélecteur et pour un indicateur parmi neuf : objectif, refus, demande non soutenue, couverture de la demande, déficit RH, postes couverts, lits ouverts, équité et temps de calcul. Un tableau complet suit le graphique, avec la meilleure méthode de chaque scénario (figure~\ref{fig:comparaison}). Les simulations personnalisées y figurent dans un tableau distinct.
+
+\subsection{Vue Allocation : Postes Manquants, Couverture RH et Planning}
+\begin{figure}[H]
+    \centering
+    \captureimg{allocation_heatmap}
+    \caption{Vue Allocation : postes manquants et couverture RH.}
+    \label{fig:allocation_heatmap}
+\end{figure}
+
+La vue Allocation montre ce que l'objectif ne dit pas. Elle comprend :
+\begin{itemize}
+    \item une \textbf{carte de chaleur} des postes manquants par service et par jour, filtrable par poste et par rôle ;
+    \item un tableau de \textbf{couverture RH} par service, rôle et poste ;
+    \item le \textbf{planning du personnel} du service : effectif affecté et cible de chaque poste, puis grille agent par jour. Les postes faits dans un autre service apparaissent en gris.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \captureimg{allocation_planning}
+    \caption{Vue Allocation : planning du personnel d'un service.}
+    \label{fig:allocation_planning}
+\end{figure}
+
+\subsection{Simulateur de Scénario Personnalisé}
+\begin{figure}[H]
+    \centering
+    \captureimg{simulateur}
+    \caption{Vue Simulateur : réglages et écarts par rapport à $S_0$.}
+    \label{fig:simulateur}
+\end{figure}
+
+L'utilisateur règle la demande ($\times 1$ à $\times 2$), les absences et les lits fermés (0 à 50\,\%), pour tout l'hôpital ou pour un service, puis choisit un profil et des méthodes. Naïve et Greedy sont cochées par défaut ; les solveurs sont facultatifs et affichent leur durée estimée. Le résultat est comparé à $S_0$, pour le même profil et la même méthode, sur quatre indicateurs.
+
+Deux protections ont été ajoutées :
+\begin{itemize}
+    \item les simulations sont \textbf{isolées} : identifiant \texttt{CUSTOM\_}, stockage local ignoré par Git, lecture séparée par le paramètre \texttt{scope=custom} ;
+    \item un cas \textbf{irréalisable} est signalé avant et après le calcul, et ses écarts ne sont pas présentés comme comparables.
+\end{itemize}
+
+\subsection{Vue Sensibilité}
+La vue Sensibilité lit la grille de \NbCas{} cas : filtres, courbes des postes couverts selon les absences, courbes de coût selon la demande, carte de chaleur absences $\times$ demande et comparaison de Naïve et Greedy (figure~\ref{fig:sensibilite}). Elle ne lance aucun calcul.
+
+% ------------------------------------------------------------------------------
+\section*{Conclusion du Chapitre}
+\addcontentsline{toc}{section}{Conclusion du Chapitre}
+% ------------------------------------------------------------------------------
+Le prototype couvre toute la chaîne, des données au tableau de bord. Les points délicats ont porté sur l'interprétation honnête des solveurs (statut, borne, reprise), sur un contrôle indépendant des plans et sur un affichage qui distingue contraintes respectées et postes couverts. Le chapitre suivant présente les tests et les résultats.

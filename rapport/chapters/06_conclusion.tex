@@ -1,0 +1,27 @@
+\chapter*{Conclusion Générale et Perspectives}
+\addcontentsline{toc}{chapter}{Conclusion Générale et Perspectives}
+\markboth{CONCLUSION GÉNÉRALE ET PERSPECTIVES}{CONCLUSION GÉNÉRALE ET PERSPECTIVES}
+
+\section*{Synthèse des Réalisations du Projet}
+Ce projet, mené au sein de la filière INDIA de l'ENSAM Rabat dans le module \textbf{Santé Digitale}, a conçu, implémenté et évalué un \textbf{prototype d'aide à la décision pour la planification conjointe des lits et du personnel hospitalier}. Ses contributions sont les suivantes :
+\begin{enumerate}
+    \item \textbf{Une chaîne de données synthétiques contrôlée} : \NbJours{} jours d'activité pour \NbLits{} lits et \NbAgents{} professionnels, sans aucune donnée personnelle réelle.
+    \item \textbf{Une prévision évaluée chronologiquement} : cinq modèles comparés, avec un WAPE de validation de \WapeValUrg{} aux Urgences pour la régression à retards, et un test final qui nuance ce choix dans les autres services.
+    \item \textbf{Un modèle unique des lits et du personnel} : cohortes de patients, dotation minimale, repos, qualifications, déficit de personnel et équité, avec une fonction objectif réglée par trois profils.
+    \item \textbf{Une comparaison de quatre méthodes} : naïve, Greedy, MILP/CBC et CP-SAT, sur six scénarios et trois profils. Les 72 plans respectent les contraintes dures ; CP-SAT est la meilleure méthode, ou ex æquo, dans \NbCpMeilleur{} cas sur 18.
+    \item \textbf{Une analyse des cas dégradés} : saturation, absences, crise combinée et fermeture de lits, complétées par une grille de sensibilité de \NbCas{} cas.
+    \item \textbf{Un outil utilisable} : une API de \NbEndpoints{} points d'accès et un tableau de bord de dix vues, dont la couverture RH et un simulateur, vérifiés par \NbTestsPython{} tests Python et \NbTestsNavigateur{} parcours de navigateur.
+    \item \textbf{Un cadre d'usage} : loi 09-08 et CNDP, HL7 FHIR, ISO/IEC 27001 et ISO 27799, rôles et processus de décision hebdomadaire.
+\end{enumerate}
+
+\section*{Enseignements}
+\begin{itemize}
+    \item \textbf{Un meilleur objectif n'est pas toujours un meilleur accueil} : avec la priorité personnel, CP-SAT réduit le déficit RH de \DeficitCpMinPer{} à \DeficitCpMaxPer{} par rapport à Greedy, mais refuse \RefusCpPerSq{} patients au lieu de \RefusGreedySq{} en $S_4$.
+    \item \textbf{Respecter les contraintes ne suffit pas} : en situation nominale, \CouvDemSzGreedy{} de la demande est acceptée, mais \CouvSzGreedy{} seulement des postes cibles sont couverts.
+    \item \textbf{L'optimisation répartit une pénurie, elle ne la supprime pas} : \NbAgents{} agents offrent au plus \CapacitePostes{} postes par semaine, pour une cible de \CibleSz{} postes dans le plan nominal de Greedy.
+    \item \textbf{Une heuristique simple reste utile} : Greedy répond en moins de deux secondes et sert de référence et de repli.
+    \item \textbf{Un contrôle indépendant est nécessaire} : il a conduit à renforcer la vérification des cohortes de patients et à ne plus qualifier un plan de « valide » sans préciser sa couverture.
+\end{itemize}
+
+\section*{Clôture et Perspectives}
+Le prototype n'est pas prêt pour un usage hospitalier : les données sont synthétiques, les poids ont été choisis par l'équipe, l'optimalité est rarement prouvée et la sécurité reste à construire. Les suites naturelles sont le recalibrage des effectifs et des qualifications, l'enchaînement des semaines, la prise en compte de l'incertitude, la définition des poids avec des professionnels et l'intégration au système d'information hospitalier. Dans tous les cas, l'outil propose et explique ; la décision reste aux équipes de soins.

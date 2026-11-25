@@ -1,0 +1,17 @@
+% Généré par rapport/scripts/generate_tables.py : ne pas modifier à la main.
+\begin{table}[H]
+    \centering
+    \caption{Poids de l'objectif selon le profil (\texttt{configs/profiles.json}).}
+    \label{tab:profils}
+    \resizebox{\textwidth}{!}{\begin{tabular}{llccc}
+        \toprule
+        \textbf{Coefficient} & \textbf{Champ} & \textbf{Équilibré} & \textbf{Priorité accueil} & \textbf{Priorité personnel} \\
+        \midrule
+        $c_{\text{lit}}$, lit-jour ouvert & \texttt{opened\_bed} & 10 & 10 & 10 \\
+        $c_{\text{dem}}$, journée-patient non soutenue & \texttt{unmet\_patient\_day} & 1\,000 & 3\,000 (URG $\times$3) & 1\,000 \\
+        $c_{\text{ref}}$, admission refusée & \texttt{rejected\_admission} & 0 & 5\,000 (URG $\times$3) & 0 \\
+        $c_{\text{rh}}$, poste cible non couvert & \texttt{staff\_target\_shortage} & 500 & 500 (URG $\times$2) & 750 \\
+        $c_{\text{eq}}$, poste d'étendue de charge & \texttt{workload\_imbalance} & 1 & 1 & 100 \\
+        \bottomrule
+    \end{tabular}}
+\end{table}

@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><link rel="stylesheet" href="style.css"><style>
+.colonnes { display: grid; grid-template-columns: repeat(5, 208px); gap: 14px; margin-top: 16px; }
+.lot { display: grid; gap: 10px; align-content: start; }
+.lot .titre { font-size: 14px; padding: 10px 8px; min-height: 38px; display: grid; align-items: center; }
+</style></head><body><div id="schema">
+<div class="titre">Système de planification hospitalière (WBS)</div>
+<div class="colonnes">
+<div class="lot"><div class="titre">WP1 : Cadrage et données</div><div class="boite">1.1 Spécifications P0/P1/P2</div><div class="boite">1.2 Générateur 1 095 jours</div><div class="boite">1.3 Contrôle de qualité</div></div>
+<div class="lot"><div class="titre">WP2 : Modélisation et prévision</div><div class="boite">2.1 Dynamique de cohortes et besoins</div><div class="boite">2.2 Cinq modèles prédictifs</div><div class="boite">2.3 Validation chronologique J+1 à J+7</div></div>
+<div class="lot"><div class="titre">WP3 : Optimisation et contrôle</div><div class="boite">3.1 Naïve et Greedy</div><div class="boite">3.2 MILP/CBC et CP-SAT, 3 profils</div><div class="boite">3.3 Validateur indépendant</div></div>
+<div class="lot"><div class="titre">WP4 : Plateforme web</div><div class="boite">4.1 API REST FastAPI</div><div class="boite">4.2 Dashboard Next.js (10 vues)</div><div class="boite">4.3 Simulateur et tests navigateur</div></div>
+<div class="lot"><div class="titre">WP5 : Expérimentations</div><div class="boite">5.1 Scénarios S0 à S5</div><div class="boite">5.2 Sensibilité (80 cas)</div><div class="boite">5.3 Bilan et rapport</div></div>
+</div></div></body></html>

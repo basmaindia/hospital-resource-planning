@@ -1,0 +1,35 @@
+\chapter*{Résumé}
+\addcontentsline{toc}{chapter}{Résumé}
+
+La gestion des lits et du personnel d'un hôpital est un problème décisionnel difficile : les admissions sont incertaines, les règles de travail sont nombreuses et les services dépendent les uns des autres. Ce projet présente la conception, l'implémentation et l'évaluation d'un outil d'aide à la décision reproductible pour un hôpital synthétique de \textbf{\NbLits{} lits répartis sur quatre services (Urgences, Médecine, Réanimation, Chirurgie)} et \NbAgents{} professionnels, sur un horizon de \textbf{7 jours ($J+1$ à $J+7$)}. Aucune donnée patient réelle n'est utilisée.
+
+La chaîne de traitement comprend :
+\begin{enumerate}
+    \item La génération et le contrôle de données synthétiques couvrant \NbJours{} jours ;
+    \item La comparaison de cinq modèles de prévision des admissions, validés chronologiquement (WAPE de validation de \WapeValUrg{} aux Urgences pour la régression à retards retenue) ;
+    \item Une formulation unique de l'ouverture des lits et de l'affectation individuelle du personnel sur trois postes, avec repos minimal de \ReposMin{}\,h, \PostesMax{} postes par semaine au plus et dotation minimale ;
+    \item Quatre méthodes comparées sur les mêmes instances (stratégie naïve, heuristique Greedy, MILP/CBC, CP-SAT) et trois profils de pondération (équilibré, priorité accueil, priorité personnel), soit 72 plans contrôlés par un validateur indépendant ;
+    \item Six scénarios ($S_0$ nominal à $S_5$ fermeture de lits) et une grille de sensibilité de \NbCas{} cas ;
+    \item Une API FastAPI et un tableau de bord Next.js de dix vues, dont un simulateur de scénario personnalisé ;
+    \item Un cadre réglementaire, normatif et organisationnel : loi 09-08 et CNDP, HL7 FHIR, ISO/IEC 27001 et ISO 27799.
+\end{enumerate}
+
+Les 72 plans respectent toutes les contraintes dures. CP-SAT est la meilleure méthode, ou ex æquo, dans \NbCpMeilleur{} cas sur 18 ; avec le profil équilibré, la meilleure méthode améliore l'objectif de Greedy de \GainMinEq{} à \GainMaxEq{}. Le résultat principal est cependant un \textbf{arbitrage entre accueil et personnel} : réduire le déficit de personnel conduit à refuser davantage de patients. L'hôpital étudié est en sous-effectif structurel : en situation nominale, Greedy accepte \CouvDemSzGreedy{} de la demande mais ne couvre que \CouvSzGreedy{} des postes cibles. Respecter les contraintes ne signifie donc pas disposer d'un effectif suffisant, et l'outil affiche toujours les deux indicateurs.
+
+\vspace{0.5cm}
+\noindent\textbf{Mots-clés :} planification hospitalière, recherche opérationnelle, MILP, CP-SAT, profils de pondération, séries temporelles, données synthétiques, loi 09-08, HL7 FHIR, santé digitale, FastAPI, Next.js.
+
+\vspace{1cm}
+\selectlanguage{english}
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Planning hospital beds and staff is a difficult decision problem: admissions are uncertain, working rules are numerous and wards depend on one another. This project presents the design, implementation and evaluation of a reproducible decision-support tool for a synthetic hospital with \NbLits{} beds across four departments (Emergency, Medicine, Intensive Care, Surgery) and \NbAgents{} professionals, over a 7-day horizon ($D+1$ to $D+7$). No real patient data is used.
+
+The pipeline includes synthetic data covering \NbJours{} days; five forecasting models with chronological validation (validation WAPE of \WapeValUrg{} for Emergency with the selected lagged regression); a single formulation of bed opening and individual staff assignment with an \ReposMin{}-hour minimum rest, at most \PostesMax{} shifts per week and minimum staffing; four methods (naive strategy, greedy heuristic, MILP/CBC, CP-SAT) and three weighting profiles (balanced, admission priority, staff priority), that is 72 plans checked by an independent validator; six scenarios and an \NbCas{}-case sensitivity grid; a FastAPI service and a ten-view Next.js dashboard with a custom scenario simulator; and a regulatory, normative and organisational framework (Moroccan law 09-08, HL7 FHIR, ISO/IEC 27001 and ISO 27799).
+
+All 72 plans satisfy every hard constraint. CP-SAT is the best method, or tied for best, in \NbCpMeilleur{} of 18 cases. The main finding is a trade-off between admitting patients and protecting staff: lowering the staffing deficit leads to more rejected admissions. The hospital under study is structurally understaffed: in the nominal scenario the greedy plan accepts \CouvDemSzGreedy{} of the demand but covers only \CouvSzGreedy{} of the target staff positions. Satisfying the constraints is therefore not the same as having enough staff, and the tool always reports both indicators.
+
+\vspace{0.5cm}
+\noindent\textbf{Keywords:} hospital resource planning, operations research, mixed-integer linear programming, CP-SAT, weighting profiles, time-series forecasting, synthetic data, law 09-08, HL7 FHIR, digital health, FastAPI, Next.js.
+\selectlanguage{french}

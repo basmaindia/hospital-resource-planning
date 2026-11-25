@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><link rel="stylesheet" href="style.css"><style>
+#g { position: relative; width: 1240px; margin-top: 14px; border: 1px solid #d7e0e2; }
+.phase { position: relative; } .phase:nth-child(odd) { background: var(--gris); }
+.nom { position: absolute; left: 10px; top: 10px; width: 190px; font-weight: 700; color: var(--bleu); font-size: 13px; }
+.rang { position: relative; height: 27px; }
+.barre { position: absolute; top: 4px; height: 19px; background: var(--vert); border-radius: 4px; }
+.lib { position: absolute; top: 5px; font-size: 12px; white-space: nowrap; }
+.jalon { position: absolute; top: 6px; width: 14px; height: 14px; background: var(--bleu); transform: rotate(45deg); }
+.axe { position: relative; height: 26px; border-top: 1px solid #d7e0e2; } .axe span { position: absolute; top: 5px; font-size: 12px; color: #587070; transform: translateX(-50%); }
+.trait { position: absolute; top: 0; bottom: 0; width: 1px; background: #dfe7e9; }
+</style></head><body><div id="schema"><div class="titre">Planning prévisionnel du projet (21 septembre – 24 novembre 2026)</div><div id="g"></div></div>
+<script>
+const phases = [
+  ["Phase 1 : cadrage et données", [["Cadrage et spécifications P0/P1/P2", "09-21", "09-28"], ["Périmètre et paramètres", "09-25", "10-02"], ["Générateur 1 095 jours et contrôle", "09-28", "10-04"], ["M1 – Données contrôlées", "10-04"]]],
+  ["Phase 2 : modélisation et prévision", [["Dynamique de cohortes", "09-28", "10-08"], ["Règles de personnel et repos 11 h", "10-02", "10-12"], ["Cinq modèles et sélection WAPE", "10-05", "10-18"], ["M2 – Prévision validée", "10-18"]]],
+  ["Phase 3 : optimisation et contrôle", [["Heuristique gloutonne", "10-12", "10-22"], ["MILP (PuLP / CBC)", "10-18", "10-31"], ["CP-SAT (OR-Tools)", "10-22", "11-04"], ["Validateur indépendant", "10-28", "11-08"], ["M3 – Méthodes et validateur", "11-08"]]],
+  ["Phase 4 : plateforme web", [["API REST FastAPI", "10-26", "11-08"], ["Dashboard Next.js", "11-01", "11-12"], ["M4 – Plateforme intégrée", "11-15"]]],
+  ["Phase 5 : expérimentations et soutenance", [["Scénarios S0 à S5", "11-09", "11-16"], ["Grille de sensibilité (80 cas)", "11-12", "11-19"], ["Rapport et préparation", "11-15", "11-23"], ["M5 – Soutenance", "11-24"]]],
+];
+const day = (d) => new Date(`2026-${d}T00:00:00Z`) / 864e5; const start = day("09-21"), end = day("11-26"); const left = 210, right = 20, width = 1240;
+const x = (d) => left + (day(d) - start) / (end - start) * (width - left - right);
+const g = document.getElementById("g"); const add = (p, c, s = {}, t = "") => { const e = document.createElement("div"); e.className = c; Object.assign(e.style, s); e.textContent = t; p.appendChild(e); return e; };
+for (const [name, tasks] of phases) {
+  const ph = add(g, "phase"); add(ph, "nom", {}, name);
+  for (const [label, a, b] of tasks) { const r = add(ph, "rang"); if (b) { const w = x(b) - x(a); add(r, "barre", { left: x(a) + "px", width: w + "px" }); const tail = x(b) + 8 + label.length * 6.4 < width; add(r, "lib", tail ? { left: x(b) + 8 + "px" } : { right: width - x(a) + 8 + "px" }, label); } else { add(r, "jalon", { left: x(a) - 7 + "px" }); const tail = x(a) + 16 + label.length * 6.6 < width; add(r, "lib", { fontWeight: 700, ...(tail ? { left: x(a) + 16 + "px" } : { right: width - x(a) + 16 + "px" }) }, label); } }
+}
+const axe = add(g, "axe"); for (const d of ["09-27", "10-04", "10-11", "10-18", "10-25", "11-01", "11-08", "11-15", "11-22"]) { const s = document.createElement("span"); s.style.left = x(d) + "px"; s.textContent = d.slice(3) + "/" + d.slice(0, 2); axe.appendChild(s); add(g, "trait", { left: x(d) + "px" }); }
+</script></body></html>

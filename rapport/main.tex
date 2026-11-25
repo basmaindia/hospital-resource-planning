@@ -1,0 +1,229 @@
+\documentclass[11pt,a4paper,oneside]{report}
+
+% ==============================================================================
+% PAQUETS FONDAMENTAUX & TYPOGRAPHIE ACADÉMIQUE (CHARTE ENSAM RABAT)
+% ==============================================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern} % Police vectorielle Latin Modern
+\usepackage[french]{babel}
+\usepackage{geometry}
+\geometry{top=2.4cm,bottom=2.4cm,left=2.6cm,right=2.4cm}
+\usepackage{setspace}
+\setstretch{1.13}
+
+\usepackage{microtype,graphicx,float,booktabs,tabularx,array,longtable,multirow}
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage{xcolor,tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,calc,trees}
+\usepackage{pgfgantt}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{listings}
+\usepackage{titlesec,fancyhdr,hyperref,caption}
+\usepackage{subcaption}
+\usepackage{xurl}
+
+% ==============================================================================
+% CHARTE GRAPHIQUE ET COULEURS INSTITUTIONNELLES
+% ==============================================================================
+\definecolor{EnsamBlue}{RGB}{21,60,85}       % Bleu ENSAM officiel
+\definecolor{bleu}{HTML}{153C55}            % Bleu nuit profond
+\definecolor{vert}{HTML}{087F73}            % Vert canard / Teal santé
+\definecolor{gris}{HTML}{F0F4F5}            % Gris clair fond encadré
+\definecolor{primary}{RGB}{21,60,85}        % Alias couleur primaire
+\definecolor{secondary}{HTML}{087F73}       % Alias couleur secondaire
+\definecolor{accent}{RGB}{197, 48, 48}       % Rouge alerte / contrainte
+\definecolor{darkgray}{RGB}{50, 50, 50}
+\definecolor{lightgray}{HTML}{F0F4F5}
+\definecolor{placeholderbg}{HTML}{F8FAFC}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=EnsamBlue,
+    urlcolor=vert,
+    citecolor=EnsamBlue
+}
+
+% ==============================================================================
+% FORMATAGE DES TITRES (TITRESEC - STYLE ENSAM)
+% ==============================================================================
+\titleformat{\chapter}[display]
+{\normalfont\bfseries\color{EnsamBlue}}
+{\Large Chapitre \thechapter}
+{9pt}
+{\Huge}
+\titlespacing*{\chapter}{0pt}{-5pt}{17pt}
+
+\titleformat{\section}
+{\large\bfseries\color{EnsamBlue}}
+{\thesection}{0.7em}{}
+
+\titleformat{\subsection}
+{\normalsize\bfseries\color{vert}}
+{\thesubsection}{0.6em}{}
+
+\titleformat{\subsubsection}
+{\small\bfseries\color{darkgray}}
+{\thesubsubsection}{0.5em}{}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\captionsetup{font=small,labelfont=bf}
+
+% Répertoires de recherche des figures
+\graphicspath{{figures/}{./}}
+\DeclareGraphicsExtensions{.png,.jpg,.jpeg,.pdf}
+
+% ==============================================================================
+% EN-TÊTES ET PIEDS DE PAGE (FANCYHDR - CONFORME AU MODÈLE ENSAM)
+% ==============================================================================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{gray}Planification Prédictive des Ressources Hospitalières}
+\fancyhead[R]{\small\color{gray}ENSAM Rabat -- INDIA}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% ==============================================================================
+% MACROS ET ENCADRÉS POUR CAPTURES ET NOTES
+% ==============================================================================
+% Boîte de note académique
+\newtcolorbox{notebox}[1]{
+    enhanced,
+    colback=gris,
+    colframe=EnsamBlue,
+    fonttitle=\bfseries\small,
+    title=#1,
+    boxrule=0.8pt,
+    arc=2pt
+}
+
+% Encadré pour réservations de captures d'écran
+\newtcolorbox{imageplaceholder}[1]{
+    enhanced,
+    colback=gris,
+    colframe=vert,
+    fonttitle=\bfseries\small,
+    title=Emplacement réservé : #1,
+    boxrule=0.9pt,
+    borderline={0.6pt}{0pt}{vert,dashed},
+    arc=3pt,
+    breakable
+}
+
+% Macro d'insertion de capture simplifiée
+\newcommand{\capture}[2]{%
+    \fcolorbox{gray!45}{gris}{%
+        \parbox[c][3.2cm][c]{0.88\linewidth}{%
+            \centering\textbf{\color{EnsamBlue}Capture à insérer : #1}\\[4pt]%
+            \small\color{darkgray}Remplacer cet encadré par une capture réelle du projet.%
+        }%
+    }%
+}
+
+\newcommand{\captureimg}[2][0.95\textwidth]{%
+  \IfFileExists{figures/#2.png}{\includegraphics[width=#1,height=0.45\textheight,keepaspectratio]{figures/#2.png}}{%
+  \IfFileExists{#2.png}{\includegraphics[width=#1,height=0.45\textheight,keepaspectratio]{#2.png}}{%
+  \IfFileExists{figures/#2.jpg}{\includegraphics[width=#1,height=0.45\textheight,keepaspectratio]{figures/#2.jpg}}{%
+  \IfFileExists{#2.jpg}{\includegraphics[width=#1,height=0.45\textheight,keepaspectratio]{#2.jpg}}{%
+  \fcolorbox{gray!45}{gris}{%
+      \parbox[c][3.2cm][c]{0.86\linewidth}{%
+          \centering\textbf{\color{EnsamBlue}Schéma / Image à insérer : #2}\\[4pt]%
+          \small\color{darkgray}Déposer le fichier image \texttt{#2.png} dans le dossier \texttt{figures/}.%
+      }%
+  }%
+  }}}}}
+
+\newcommand{\capturebox}[2]{%
+    \begin{figure}[H]%
+        \centering%
+        \capture{#1}{#2}%
+        \caption{#2}%
+    \end{figure}%
+}
+
+% Configuration des listings de code
+\lstdefinestyle{code}{
+    basicstyle=\ttfamily\footnotesize\color{darkgray},
+    backgroundcolor=\color{gris},
+    frame=single,
+    rulecolor=\color{gray!35},
+    breaklines=true,
+    showstringspaces=false,
+    columns=fullflexible,
+    keywordstyle=\color{EnsamBlue}\bfseries,
+    commentstyle=\color{vert}\itshape,
+    stringstyle=\color{accent},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    tabsize=2
+}
+\lstset{style=code}
+
+% Définition du langage JSON
+\lstdefinelanguage{json}{
+    basicstyle=\normalfont\ttfamily\footnotesize,
+    numbers=left,
+    numberstyle=\scriptsize\color{gray},
+    stepnumber=1,
+    numbersep=8pt,
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gris}
+}
+
+% Chiffres du rapport, générés par scripts/generate_tables.py
+\input{tables/chiffres}
+
+% ==============================================================================
+% DÉBUT DU DOCUMENT
+% ==============================================================================
+\begin{document}
+
+% Page de garde académique conforme au modèle ENSAM
+\input{chapters/00_page_de_garde}
+
+% Liminaires (numérotation romaine)
+\clearpage
+\pagenumbering{roman}
+\input{chapters/00_remerciements}
+
+\clearpage
+\input{chapters/00_resume}
+
+\clearpage
+\tableofcontents
+
+\clearpage
+\listoffigures
+
+\clearpage
+\listoftables
+
+\clearpage
+\input{chapters/00_acronymes}
+
+% Corps du rapport de projet (6 chapitres conformes au modèle ENSAM)
+\clearpage
+\pagenumbering{arabic}
+\input{chapters/01_introduction}
+\input{chapters/01_contexte_et_besoins}
+\input{chapters/02_cadre_reglementaire}
+\input{chapters/02_etude_technique}
+\input{chapters/03_conception_systeme}
+\input{chapters/04_realisation_implementation}
+\input{chapters/05_tests_validation_resultats}
+\input{chapters/06_conclusion}
+
+% Bibliographie et Webographie enrichie
+\clearpage
+\input{chapters/08_bibliographie}
+
+% Annexes techniques
+\clearpage
+\input{chapters/07_annexes}
+
+\end{document}

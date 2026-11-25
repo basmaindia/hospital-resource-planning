@@ -1,0 +1,19 @@
+% Généré par rapport/scripts/generate_tables.py : ne pas modifier à la main.
+\begin{table}[H]
+    \centering
+    \caption{Admissions refusées par Greedy selon la demande et les fermetures (aucune absence ajoutée).}
+    \label{tab:sensibilite_refus}
+    \small
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Lits fermés} & \textbf{Demande $\times$1{,}00} & \textbf{Demande $\times$1{,}25} & \textbf{Demande $\times$1{,}50} & \textbf{Demande $\times$2{,}00} \\
+        \midrule
+        0\,\% & 4 & 73 & 188 & 434 \\
+        5\,\% & 14 & 105 & 227 & 473 \\
+        10\,\% & 26 & 139 & 262 & 508 \\
+        20\,\% & 79$^{\dagger}$ & 206$^{\dagger}$ & 329$^{\dagger}$ & 575$^{\dagger}$ \\
+        \bottomrule
+    \end{tabular}
+    \par\vspace{3pt}
+    {\footnotesize $^{\dagger}$ contraintes non respectées : les patients déjà présents dépassent les lits restants ; la valeur ne décrit pas un plan réalisable.}
+\end{table}

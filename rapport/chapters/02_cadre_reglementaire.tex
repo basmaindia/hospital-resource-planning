@@ -1,0 +1,153 @@
+\chapter{Cadre Réglementaire, Normatif et Organisationnel}
+\label{ch:cadre_reglementaire}
+
+Un outil de planification hospitalière manipulerait, dans un établissement réel, des données relatives à des patients et à des professionnels. Sa mise en service ne serait donc pas seulement une question technique.
+
+Ce chapitre situe le prototype par rapport à la loi marocaine 09-08, au standard d'interopérabilité HL7 FHIR et aux normes de sécurité ISO/IEC 27001 et ISO 27799, puis décrit les utilisateurs visés et le processus de décision. Il distingue ce que le prototype fait déjà de ce qui resterait à faire ; il ne constitue pas un avis juridique.
+
+% ------------------------------------------------------------------------------
+\section{Cadre Réglementaire : Loi 09-08 et CNDP}
+% ------------------------------------------------------------------------------
+
+\subsection{Les Textes}
+La loi n\textsuperscript{o}~09-08 relative à la protection des personnes physiques à l'égard du traitement des données à caractère personnel a été promulguée par le dahir n\textsuperscript{o}~1-09-15 du 18 février 2009 et publiée au Bulletin officiel n\textsuperscript{o}~5714 du 5 mars 2009~\cite{loi0908}. Son décret d'application est le décret n\textsuperscript{o}~2-09-165 du 21 mai 2009. La Commission nationale de contrôle de la protection des données à caractère personnel (CNDP) est instituée par l'article~27.
+
+\subsection{Les Dispositions Utiles au Projet}
+\begin{table}[H]
+    \centering
+    \caption{Articles de la loi 09-08 utiles à un outil de planification hospitalière.}
+    \label{tab:loi0908}
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{lp{7.6cm}p{7.2cm}}
+        \toprule
+        \textbf{Article} & \textbf{Contenu} & \textbf{Conséquence pour l'outil} \\
+        \midrule
+        Art. 1, al. 1 & Donnée à caractère personnel : information concernant une personne physique identifiée ou identifiable. & Les données du prototype ne concernent aucune personne réelle. \\
+        Art. 1, al. 3 & Données sensibles : elles incluent les données relatives à la santé. & Des admissions nominatives réelles seraient sensibles. \\
+        Art. 3 & Finalités déterminées, données adéquates, pertinentes et non excessives, conservation limitée. & La planification n'a besoin que de comptages par service et par jour. \\
+        Art. 12, al. 1-a et 21 & Autorisation préalable pour le traitement de données sensibles. & Démarche auprès de la CNDP avant tout usage de données de santé identifiantes. \\
+        Art. 22 & Déclaration, par dérogation, si la seule finalité relève notamment de la gestion des services de santé, par une personne soumise au secret. & Régime à faire confirmer par la CNDP pour l'établissement concerné. \\
+        Art. 23 et 24 & Mesures techniques et organisationnelles de sécurité ; contrôles renforcés pour les données sensibles. & Contrôle d'accès, des supports et de la transmission à mettre en place. \\
+        Art. 26 & Secret professionnel des personnes ayant connaissance des données. & Engagement des utilisateurs de l'outil. \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}
+
+\subsection{Justification des Données Synthétiques}
+Le choix de données \textbf{entièrement synthétiques} répond à une exigence du cahier des charges et à trois arguments :
+\begin{enumerate}
+    \item \textbf{Absence de personne concernée} : les admissions, l'occupation et les professionnels sont produits par un générateur (\texttt{generator.py}) à partir de paramètres et d'une graine, sans fichier source réel. Selon notre lecture de l'article~1, il ne s'agit pas de données à caractère personnel ;
+    \item \textbf{Minimisation} : même en données réelles, le modèle n'utiliserait que des comptages d'admissions et de patients présents par service, jamais un dossier médical ;
+    \item \textbf{Reproductibilité} : le jeu de données peut être publié et régénéré à l'identique, ce que des données de santé ne permettraient pas.
+\end{enumerate}
+
+La limite de ce choix est connue : les résultats ne décrivent aucun hôpital existant. Les identifiants de professionnels (par exemple \texttt{NUR-001}) sont eux aussi fictifs. Dans un usage réel, le planning du personnel serait nominatif et relèverait de la loi, même sans donnée de santé.
+
+% ------------------------------------------------------------------------------
+\section{Règles de Travail Retenues}
+% ------------------------------------------------------------------------------
+
+Le modèle impose un repos minimal de \ReposMin{}\,h entre deux postes, au plus \PostesMax{} postes par semaine et au plus \NuitsMax{} nuits consécutives. Ces valeurs sont des \textbf{paramètres de configuration}. Le repos de 11 heures consécutives par période de 24 heures correspond à l'article~3 de la directive européenne 2003/88/CE~\cite{directive2003}, citée comme référence connue ; le prototype ne prétend pas vérifier la conformité au droit du travail marocain ni au statut du personnel hospitalier.
+
+% ------------------------------------------------------------------------------
+\section{Cadre Normatif : Interopérabilité HL7 FHIR}
+% ------------------------------------------------------------------------------
+
+Le prototype lit des fichiers CSV et JSON. Une intégration au système d'information hospitalier (SIH) pourrait s'appuyer sur HL7 FHIR, dans sa version R4 (4.0.1)~\cite{fhir}. Le tableau~\ref{tab:fhir} propose une correspondance ; \textbf{elle n'est pas implémentée}.
+
+\begin{table}[H]
+    \centering
+    \caption{Correspondance proposée entre le modèle et les ressources FHIR R4.}
+    \label{tab:fhir}
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{lp{6.6cm}p{7.8cm}}
+        \toprule
+        \textbf{Ressource FHIR} & \textbf{Définition et éléments utiles} & \textbf{Usage envisagé} \\
+        \midrule
+        \texttt{Location} & Lieu de soins ; \texttt{physicalType} et \texttt{operationalStatus}, ce dernier visant surtout les lits et les chambres. & Capacité disponible et lits fermés par service (\texttt{capacity\_available}). \\
+        \texttt{Encounter} & Interaction entre un patient et un prestataire de soins ; \texttt{status}, \texttt{period}, \texttt{location}, \texttt{hospitalization}. & Admissions, sorties et recensement initial, agrégés par service avant d'entrer dans le modèle. \\
+        \texttt{Practitioner} & Personne participant aux soins ; \texttt{qualification}. & Rôles et qualifications du personnel. \\
+        \texttt{Schedule} & Ensemble de créneaux pour un ou plusieurs acteurs ; \texttt{actor}, \texttt{planningHorizon}. & Disponibilités en entrée et plan hebdomadaire en sortie. \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}
+
+L'agrégation des ressources \texttt{Encounter} en comptages devrait avoir lieu dans le SIH, avant l'outil de planification, afin de ne pas y transférer de donnée identifiante.
+
+% ------------------------------------------------------------------------------
+\section{Cadre Normatif : Sécurité de l'Information}
+% ------------------------------------------------------------------------------
+
+ISO/IEC 27001:2022 définit les exigences d'un système de management de la sécurité de l'information~\cite{iso27001}. ISO 27799:2025 décline, pour la santé, des mesures de sécurité fondées sur ISO/IEC 27002~\cite{iso27799}. Le prototype n'est \textbf{pas certifié} et n'a pas fait l'objet d'un audit. Le tableau~\ref{tab:iso} situe son état par thème.
+
+\begin{table}[H]
+    \centering
+    \caption{État du prototype par thème de sécurité.}
+    \label{tab:iso}
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{lp{7.4cm}p{7.2cm}}
+        \toprule
+        \textbf{Thème} & \textbf{Présent dans le prototype} & \textbf{À faire avant un usage réel} \\
+        \midrule
+        Protection des données & Données synthétiques uniquement. & Registre des traitements, démarche CNDP, durée de conservation. \\
+        Contrôle d'accès & Aucun : API locale sans authentification. & Authentification, rôles et droits par service. \\
+        Échanges & Origines CORS explicites, le joker est refusé. & Chiffrement des échanges et des supports. \\
+        Intégrité & Schémas Pydantic, empreinte SHA-256 des entrées de scénario, validateur indépendant. & Signature ou horodatage des plans validés. \\
+        Fichiers & Contrôle du chemin résolu avant tout téléchargement. & Cloisonnement des droits sur les dossiers. \\
+        Traçabilité & Graine, profil, poids, budget et date de chaque expérience. & Journal des accès et des décisions humaines. \\
+        Disponibilité & Résultats conservés sur disque ; les jobs en mémoire sont perdus au redémarrage. & Sauvegardes, reprise et supervision. \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}
+
+% ------------------------------------------------------------------------------
+\section{Volet Organisationnel}
+% ------------------------------------------------------------------------------
+
+Cette section est une \textbf{proposition de l'équipe} : elle n'a pas été testée auprès d'un établissement, et l'utilisabilité du tableau de bord n'a pas été mesurée.
+
+\subsection{Utilisateurs et Rôles}
+\begin{table}[H]
+    \centering
+    \caption{Utilisateurs visés et vues du tableau de bord associées.}
+    \label{tab:utilisateurs}
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{lp{6.8cm}p{6.6cm}}
+        \toprule
+        \textbf{Rôle} & \textbf{Responsabilité} & \textbf{Vues principales} \\
+        \midrule
+        Gestionnaire des lits & Ouverture et fermeture de lits, refus et réorientations. & Vue d'ensemble, Allocation, Simulateur \\
+        Cadre de santé & Planning du personnel et remplacements. & Allocation (couverture et planning) \\
+        Direction des soins & Choix du profil et arbitrage en cas de crise. & Comparaison scénarios, Sensibilité \\
+        Référent données et sécurité & Qualité des entrées, conformité et accès. & Exploration, Expériences et export \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}
+
+\subsection{Processus de Décision Hebdomadaire}
+\begin{enumerate}
+    \item \textbf{Actualiser} les données et les prévisions de $J+1$ à $J+7$ ;
+    \item \textbf{Calculer} un premier plan avec Naïve et Greedy, en quelques secondes ;
+    \item \textbf{Comparer} avec MILP/CBC et CP-SAT, pour un profil choisi par la direction ;
+    \item \textbf{Tester} dans le simulateur les aléas redoutés : absences, hausse de demande, fermeture de lits ;
+    \item \textbf{Lire ensemble} les refus, la couverture de la demande, le déficit RH et les postes couverts ;
+    \item \textbf{Décider} : le plan est une proposition ; les responsables valident, corrigent ou rejettent ;
+    \item \textbf{Consigner} l'expérience retenue, son profil et les écarts décidés.
+\end{enumerate}
+
+\begin{notebox}{Place de l'humain}
+L'outil ne décide pas d'une prise en charge. Un « refus » du modèle signifie qu'une admission prévue ne tient pas dans le plan ; sa traduction concrète (réorientation, report, renfort) relève des professionnels.
+\end{notebox}
+
+\subsection{Conduite en Mode Dégradé}
+Trois situations dégradées sont prévues et mesurées au chapitre~\ref{ch:tests_validation_resultats} : saturation ($S_2$, $S_4$), absences ($S_3$, $S_4$) et fermeture de lits ($S_5$). Côté logiciel, si un solveur ne trouve pas de solution dans son budget, son statut est \texttt{UNKNOWN} et aucun indicateur n'est affiché ; si l'API ne répond pas, le tableau de bord le signale au lieu d'afficher des valeurs anciennes. Les méthodes Naïve et Greedy servent alors de repli immédiat.
+
+% ------------------------------------------------------------------------------
+\section*{Conclusion du Chapitre}
+\addcontentsline{toc}{section}{Conclusion du Chapitre}
+% ------------------------------------------------------------------------------
+Les données synthétiques permettent de développer et d'évaluer l'outil sans traiter de donnée personnelle. Un usage réel demanderait une démarche auprès de la CNDP, une interopérabilité avec le SIH, pour laquelle une correspondance FHIR est proposée, et des mesures de sécurité que le prototype n'a pas, en premier lieu l'authentification. L'organisation proposée garde la décision aux professionnels. Le chapitre suivant présente les choix techniques.
