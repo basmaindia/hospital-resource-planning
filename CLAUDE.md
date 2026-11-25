@@ -26,7 +26,7 @@ Code : `src/hospital_planning/` ; tests : `tests/` ; config : `configs/hospital.
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install . pytest pytest-cov ruff httpx
 $env:PYTHONPATH = "src"
-.\.venv\Scripts\python.exe -m pytest -q                      # 78 tests
+.\.venv\Scripts\python.exe -m pytest -q                      # 79 tests
 .\.venv\Scripts\python.exe -m ruff check src tests
 # Régénérer la comparaison complète (≈ 32 min, PC branché et sans veille : 50 s et 8 threads par solveur exact)
 .\.venv\Scripts\python.exe -m hospital_planning.experiments.runner --methods naive greedy milp cp_sat --profiles equilibre priorite_accueil priorite_personnel
@@ -50,6 +50,7 @@ Après une modification Python avec une installation non éditable : `pip instal
 - Le hash d'instance (`_scenario_hash`) force `lineterminator="\n"` : sinon l'ID d'expérience change selon l'OS.
 - `save_experiment` **fusionne** les méthodes d'une même instance : relancer une méthode ne supprime pas les autres.
 - Le dashboard n'affiche jamais de valeur inventée : un KPI absent → état vide explicite.
+- Ne pas écrire « solution valide » : afficher « contraintes respectées » et « % de postes cibles couverts » (`staff_coverage_rate`).
 - Textes de l'interface et documentation en français.
 
 ## Endpoints utiles
@@ -58,7 +59,7 @@ Après une modification Python avec une installation non éditable : `pip instal
 `POST /api/v1/jobs/experiments` (`{"scenario_ids": [...], "methods": [...]}`). Doc interactive : `/docs`.
 
 ## Constat important pour le rapport
-72 résultats (6 scénarios × 3 profils × 4 méthodes), tous valides ; seul S3 « priorité accueil » est prouvé optimal.
+72 résultats (6 scénarios × 3 profils × 4 méthodes), contraintes dures toutes respectées ; seul S3 « priorité accueil » est prouvé optimal.
 - CP-SAT est meilleur ou ex æquo sur 17 cas sur 18. Gain sur Greedy du meilleur solveur : 1,4–5,0 % (équilibré),
   0,4–3,1 % (priorité accueil), 2,8–7,9 % (priorité personnel). Naïve est 4,6–13,9 % au-dessus de Greedy.
 - Priorité accueil : MILP = CP-SAT partout, à 0,1 % ou moins de la borne ; les refus restants sont imposés par les lits.

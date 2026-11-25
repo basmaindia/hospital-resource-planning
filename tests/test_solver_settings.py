@@ -8,7 +8,7 @@ import pytest
 from fastapi import HTTPException
 from pydantic import ValidationError
 
-from hospital_planning.api.app import get_dashboard_allocation
+from hospital_planning.api.app import _metric_rows, get_dashboard_allocation
 from hospital_planning.config.loader import with_solver_settings
 from hospital_planning.domain.contracts import ExperimentJobRequest, HospitalConfig
 from hospital_planning.optimization.exact import (
@@ -117,7 +117,7 @@ def test_cbc_crash_is_retried_with_another_seed_within_the_budget(
 def test_method_without_solution_is_reported_as_absent(monkeypatch, tmp_path) -> None:
     directory = tmp_path / "experiment-x"
     (directory / "milp").mkdir(parents=True)
-    for name in ("bed_allocations.csv", "staff_coverage.csv"):
+    for name in ("bed_allocations.csv", "staff_coverage.csv", "staff_assignments.csv"):
         (directory / "milp" / name).write_text("\n", encoding="utf-8")
     result = {
         "experiment_id": "milp-x",
@@ -133,6 +133,7 @@ def test_method_without_solution_is_reported_as_absent(monkeypatch, tmp_path) ->
     artifacts = {
         "bed_allocations": "milp/bed_allocations.csv",
         "staff_coverage": "milp/staff_coverage.csv",
+        "staff_assignments": "milp/staff_assignments.csv",
         "method_result": "milp/method_result.json",
     }
     metadata = {"method_artifacts": {"milp": artifacts}}
@@ -144,3 +145,18 @@ def test_method_without_solution_is_reported_as_absent(monkeypatch, tmp_path) ->
 
     assert error.value.status_code == 404
     assert "UNKNOWN" in error.value.detail
+
+
+def test_metric_rows_distinguish_constraints_from_covered_posts(tmp_path) -> None:
+    (tmp_path / "metrics.csv").write_text(
+        "method_name,validation_passed,objective_value\ngreedy,True,10\nmilp,,\n", encoding="utf-8"
+    )
+    (tmp_path / "greedy").mkdir()
+    (tmp_path / "greedy" / "staff_coverage.csv").write_text(
+        "target_staff,assigned_staff,target_shortage\n10,4,6\n2,5,0\n", encoding="utf-8"
+    )
+    greedy, milp = _metric_rows(tmp_path / "metrics.csv")
+
+    # Le surplus du second besoin (5 pour 2) ne compense pas le manque du premier.
+    assert greedy["validation_passed"] and greedy["staff_coverage_rate"] == pytest.approx(0.5)
+    assert milp["staff_coverage_rate"] is None and milp["objective_value"] is None

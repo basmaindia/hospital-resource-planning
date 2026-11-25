@@ -123,11 +123,12 @@ Les groupes comparables sont les professionnels **actifs et présents du même r
 - `rejected_admissions` est un KPI en patients, sans coût propre avec `equilibre` et `priorite_personnel` : la demande n'y est pénalisée que par les journées-patients non soutenues. Seul `priorite_accueil` ajoute un coût par refus, qui corrige aussi l'effet de fin d'horizon.
 - `coverage_rate` = occupation soutenue / occupation demandée. Il mesure l'accueil, pas le personnel. Si l'occupation demandée est nulle, le code retourne 1 par convention.
 - `staff_shortage_total` = Σ `max(cible − affectés, 0)`, avec une cible entière `max(min[r], ceil(ratio[r] × L / 10))` pour un service ouvert.
+- `staff_coverage_rate` (« % de postes cibles couverts ») = 1 − `staff_shortage_total` / Σ cible. Un surplus d'effectif sur un besoin ne compense pas un manque sur un autre.
 - `optimality_gap` = (objectif − borne) / objectif, lorsqu'un solveur fournit une borne.
 
 ## Validation indépendante
 
-Le validateur recompte, depuis les tables retournées et sans réutiliser les contraintes des solveurs : capacité et bilan des lits, `0 ≤ acceptées ≤ demandées`, cohortes rejouées depuis l'instance, disponibilité, qualification, double affectation, nombre de postes, repos, nuits consécutives et dotation minimale. Le déficit de cible est compté à part : il n'invalide une solution que sous la politique `strict`.
+Le validateur recompte, depuis les tables retournées et sans réutiliser les contraintes des solveurs : capacité et bilan des lits, `0 ≤ acceptées ≤ demandées`, cohortes rejouées depuis l'instance, disponibilité, qualification, double affectation, nombre de postes, repos, nuits consécutives et dotation minimale. Le déficit de cible est compté à part : il n'invalide une solution que sous la politique `strict`. « Contraintes respectées » ne signifie donc pas « effectif suffisant » : l'interface affiche toujours les deux indicateurs.
 
 ## Hypothèses et limites
 

@@ -169,7 +169,7 @@ Objectif du profil, plus bas = meilleur (graine 42, 50 s et 8 threads par solveu
 ## Limites
 
 - Les données, ratios, scénarios et résultats sont synthétiques.
-- Les expériences fournies couvrent S0–S5 avec quatre méthodes et trois profils (72 résultats valides, un seul cas prouvé optimal). MILP et CP-SAT, parallèles et limités à 50 s, peuvent varier légèrement d'une exécution à l'autre.
+- Les expériences fournies couvrent S0–S5 avec quatre méthodes et trois profils (72 résultats respectant toutes les contraintes dures, un seul cas prouvé optimal ; 33 à 60 % des postes cibles couverts). MILP et CP-SAT, parallèles et limités à 50 s, peuvent varier légèrement d'une exécution à l'autre.
 - Le déficit de personnel représente 75 à 95 % de l'objectif équilibré : un meilleur objectif peut s'accompagner de davantage d'admissions refusées.
 - Les solveurs exacts et la sensibilité exhaustive peuvent être coûteux et ne sont jamais lancés automatiquement.
 - Le test Playwright nécessite un navigateur installé et ne contrôle pas les données affichées.

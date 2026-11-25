@@ -167,8 +167,7 @@ def get_experiment(experiment_id: str) -> dict[str, object]:
     if not metadata_path.is_file() or not metrics_path.is_file():
         raise HTTPException(status_code=404, detail=f"Expérience inconnue: {experiment_id}")
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    metrics = pd.read_csv(metrics_path).where(pd.notna, None).to_dict(orient="records")
-    return {"metadata": metadata, "metrics": metrics}
+    return {"metadata": metadata, "metrics": _metric_rows(metrics_path)}
 
 
 @app.get("/api/v1/dashboard/scenario-comparison")
@@ -204,10 +203,7 @@ def get_scenario_comparison(seed: int | None = None, profile: str = DEFAULT_PROF
     rows: list[dict[str, object]] = []
     for scenario_id in sorted(selected):
         _, _, scenario_seed, metrics_path = selected[scenario_id]
-        frame = pd.read_csv(metrics_path)
-        frame["seed"] = scenario_seed
-        frame["profile_id"] = profile
-        rows.extend(frame.astype(object).where(pd.notna(frame), None).to_dict(orient="records"))
+        rows.extend(row | {"seed": scenario_seed, "profile_id": profile} for row in _metric_rows(metrics_path))
     return rows
 
 
@@ -362,8 +358,15 @@ def get_dashboard_allocation(experiment_id: str, method_name: str) -> Allocation
         raise HTTPException(status_code=404, detail="Méthode non disponible pour cette expérience.")
     allocations_path = _resolve_experiment_artifact(directory, artifacts.get("bed_allocations"))
     coverage_path = _resolve_experiment_artifact(directory, artifacts.get("staff_coverage"))
+    assignments_path = _resolve_experiment_artifact(directory, artifacts.get("staff_assignments"))
     result_path = _resolve_experiment_artifact(directory, artifacts.get("method_result"))
-    _require_files(allocations_path, coverage_path, result_path, detail="Artefacts d'allocation non générés.")
+    _require_files(
+        allocations_path,
+        coverage_path,
+        assignments_path,
+        result_path,
+        detail="Artefacts d'allocation non générés.",
+    )
     result = MethodResult.model_validate(_read_json(result_path, detail="Résultat de méthode invalide."))
     if result.objective_value is None:
         # Budget épuisé avant toute solution : les tables d'allocation sont vides.
@@ -382,7 +385,32 @@ def get_dashboard_allocation(experiment_id: str, method_name: str) -> Allocation
         method_result=result,
         allocations=_csv_records(allocations_path, date_columns=("date",)),
         staff_coverage=_csv_records(coverage_path, date_columns=("date",)),
+        staff_assignments=_csv_records(assignments_path, date_columns=("date",)),
     )
+
+
+def _metric_rows(metrics_path: Path) -> list[dict[str, object]]:
+    """Lit les KPI d'une expérience et y joint la part des postes cibles couverts.
+
+    Ce taux se déduit de la table de couverture persistée de chaque méthode : il
+    distingue « contraintes respectées » de « effectifs suffisants ».
+    """
+    frame = pd.read_csv(metrics_path)
+    frame["staff_coverage_rate"] = [
+        _staff_coverage_rate(metrics_path.parent / str(method) / "staff_coverage.csv")
+        for method in frame["method_name"]
+    ]
+    return frame.astype(object).where(pd.notna(frame), None).to_dict(orient="records")
+
+
+def _staff_coverage_rate(coverage_path: Path) -> float | None:
+    """Part des postes cibles pourvus, ou None sans table exploitable."""
+    try:
+        coverage = pd.read_csv(coverage_path, usecols=["target_staff", "target_shortage"])
+    except (OSError, ValueError):
+        return None
+    target = int(coverage["target_staff"].sum())
+    return None if target == 0 else 1 - int(coverage["target_shortage"].sum()) / target
 
 
 def _reference_seed() -> int | None:

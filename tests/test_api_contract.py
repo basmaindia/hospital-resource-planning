@@ -132,6 +132,16 @@ def test_dashboard_read_contracts_expose_only_persisted_artifacts(monkeypatch, r
     assert allocation.method_result.rejected_admissions == 4
     assert all(point.occupancy_required is None for point in allocation.allocations)
     assert len(milp_allocation.allocations) == 28
+    covered = sum(point.target_staff - point.target_shortage for point in allocation.staff_coverage)
+    target = sum(point.target_staff for point in allocation.staff_coverage)
+    reference = next(
+        row for row in comparison if (row["scenario_id"], row["method_name"]) == ("S0_BASELINE", "greedy")
+    )
+    assert reference["staff_coverage_rate"] == pytest.approx(covered / target)
+    assert all(0 < row["staff_coverage_rate"] < 1 for row in comparison)
+    # Le planning affiché et la couverture proviennent des mêmes affectations.
+    assert len(allocation.staff_assignments) == sum(point.assigned_staff for point in allocation.staff_coverage)
+    assert {point.service for point in allocation.staff_assignments} == {"URG", "MED", "REA", "CHI"}
     assert all(point.occupancy_required is not None for point in milp_allocation.allocations)
     assert len(cp_sat_allocation.allocations) == 28
     assert len(comparison) == 6 * 4

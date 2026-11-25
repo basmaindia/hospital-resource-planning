@@ -48,6 +48,8 @@ Le manifeste de sensibilité contient 80 instances et 160 appels exacts potentie
 
 - Les vues Vue d'ensemble, Exploration, Prévisions, Allocation et Scénarios lisent des données réellement persistées. Les admissions entières de la vue Prévisions viennent de l'instance opérationnelle (plafond de `yhat`).
 - La vue Comparaison scénarios possède un sélecteur de profil de pondération et affiche ses poids. Elle retient une expérience par scénario pour ce profil, avec la graine de référence en priorité. Elle compare huit indicateurs et affiche l'écart à S0, le gap et le budget des solveurs.
+- La vue Allocation affiche, pour la méthode choisie, la heatmap des postes manquants (services × jours, filtrable par poste et par rôle), la couverture par service, rôle et poste, et le planning du personnel du service sélectionné.
+- Deux indicateurs distincts remplacent la mention « solution valide » : « contraintes respectées » (capacité, cohortes, disponibilités, qualifications, repos, dotation minimale, vérifiées par le validateur) et « % de postes cibles couverts » (1 − postes manquants / postes cibles). Un plan peut respecter toutes les contraintes en ne couvrant que la moitié des postes cibles.
 - La vue Méthodes compare les KPI seulement lorsque plusieurs méthodes sont présentes dans une même expérience ; sinon elle explique comment obtenir une comparaison valide.
 - La vue Expériences soumet explicitement un job, suit son état, recharge le registre après `COMPLETED`, affiche ses KPI et propose les exports existants.
 - La vue Sensibilité lit le manifeste réel, son volume et son coût exact estimé, mais ne dessine aucun résultat avant une exécution explicitement persistée.

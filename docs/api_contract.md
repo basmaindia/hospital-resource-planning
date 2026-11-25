@@ -52,7 +52,7 @@ Les endpoints `dashboard` sont strictement passifs. Ils n'appellent ni générat
 - `forecasts` expose les 140 prévisions finales (dont 28 sélectionnées) et les métriques chronologiques ; `yhat` reste une valeur continue en patients/jour.
 - `operational` expose les admissions demandées et besoins de lits avant allocation.
 - `operational/S0_BASELINE` résout l'artefact nominal historique `results/operational_instances/S0/`; il ne recalcule pas l'instance et conserve donc la même provenance de données.
-- `methods` expose une seule méthode appartenant à une expérience explicitement identifiée, avec son `MethodResult`, ses allocations de lits et sa couverture RH. Les admissions refusées sont des patients ; la demande non soutenue est en journées-patients.
+- `methods` expose une seule méthode appartenant à une expérience explicitement identifiée, avec son `MethodResult`, ses allocations de lits, sa couverture RH et ses affectations. Les lignes de KPI (`experiments/{id}` et `scenario-comparison`) portent aussi `staff_coverage_rate`, déduit de la table de couverture persistée. Les admissions refusées sont des patients ; la demande non soutenue est en journées-patients.
 - Les allocations exactes peuvent exposer `occupancy_required` : c'est le besoin d'occupation calculé avant décision, conservé comme information optionnelle car les anciens artefacts Greedy ne le portent pas.
 - `sensitivity/manifest` expose les paramètres, graines et coûts d'exécution estimés d'une grille déjà créée. Il n'exécute ni solveur ni scénario et ne prétend pas fournir des résultats de sensibilité.
 - L'absence d'un artefact producteur retourne HTTP 404 avec un message explicite. Aucun chiffre de remplacement n'est généré.

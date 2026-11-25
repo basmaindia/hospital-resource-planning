@@ -32,7 +32,7 @@ Dernière synthèse : novembre 2026. Ce fichier décrit l’état observable du 
 - La validation de prévision réserve le test final ; il n’intervient pas dans la sélection des modèles.
 - Les trois méthodes utilisent les mêmes conventions d’unités et les mêmes composantes d’objectif.
 - Les admissions refusées sont un KPI en patients ; la pénalité de demande est portée une seule fois par les journées-patients non soutenues.
-- Contrôles confirmés le 25 novembre 2026 : `pytest -q` (78 tests), `ruff check src tests`, `npm.cmd run typecheck` et `npm.cmd run lint`. `npm.cmd run build` et Playwright (avec Edge) ont réussi lors de l'audit, avant ces corrections.
+- Contrôles confirmés le 25 novembre 2026 : `pytest -q` (79 tests), `ruff check src tests`, `npm.cmd run typecheck` et `npm.cmd run lint`. `npm.cmd run build` et Playwright (avec Edge) ont réussi lors de l'audit, avant ces corrections.
 
 ## Jeu de démonstration pour GitHub
 
@@ -74,7 +74,7 @@ Un audit a montré que les premiers résultats de la version 2 étaient biaisés
 
 ### Résultats par profil (plus bas = meilleur, au sein d'un profil)
 
-72 exécutions, 72 valides ; seul S3 « priorité accueil » est prouvé optimal. Meilleur objectif de chaque scénario en gras. Gap = (objectif − borne) / objectif.
+72 exécutions, 72 respectant toutes les contraintes dures ; seul S3 « priorité accueil » est prouvé optimal. Meilleur objectif de chaque scénario en gras. Gap = (objectif − borne) / objectif.
 
 #### Équilibré (`equilibre`)
 

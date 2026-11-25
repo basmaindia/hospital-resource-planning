@@ -14,3 +14,7 @@ export const serviceColors: Record<string, string> = {
 };
 
 export const fmt = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 });
+
+export const roleLabels: Record<string, string> = { PHYSICIAN: "Médecins", NURSE: "Infirmiers", CARE_ASSISTANT: "Aides-soignants" };
+export const shiftLabels: Record<string, string> = { MORNING: "Matin", EVENING: "Soir", NIGHT: "Nuit" };
+export const shiftOrder: Record<string, number> = { MORNING: 0, EVENING: 1, NIGHT: 2 };

@@ -463,6 +463,17 @@ class StaffCoveragePoint(BaseModel):
     target_shortage: NonNegativeInt
 
 
+class StaffAssignmentPoint(BaseModel):
+    """Affectation d'un professionnel synthétique à un poste."""
+
+    model_config = ConfigDict(extra="forbid")
+    staff_id: str
+    date: date
+    service: str
+    shift: str
+    role: str
+
+
 class AllocationArtifactResponse(BaseModel):
     """Résultat de méthode avec lits et couverture RH réellement persistés."""
 
@@ -471,3 +482,4 @@ class AllocationArtifactResponse(BaseModel):
     method_result: MethodResult
     allocations: list[AllocationPoint]
     staff_coverage: list[StaffCoveragePoint]
+    staff_assignments: list[StaffAssignmentPoint]
