@@ -1,6 +1,6 @@
 {
   "forecast_run_id": "forecast-20251230",
-  "created_at": "2026-11-01T19:38:00.607137+00:00",
+  "created_at": "2026-11-25T13:58:23.028283+00:00",
   "horizon_days": 7,
   "validation_origins": 12,
   "final_test_origins": 4,
@@ -12,5 +12,5 @@
     "lagged_regression"
   ],
   "services": 4,
-  "demand_config_hash": "1b87b2b31569f5c5b276e606ae5c85976bb5bd275d5233a93f7518f886d35b5c"
+  "demand_config_hash": "dbab2540f1e153126bd09cc96f90b533dc972af3d654b4173e0a6307a3e825cd"
 }

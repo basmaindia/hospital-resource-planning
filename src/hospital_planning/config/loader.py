@@ -1,5 +1,6 @@
 """Chargement strict des fichiers JSON de configuration."""
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -28,3 +29,16 @@ def with_solver_settings(
     if any(value < 1 for value in overrides.values()):
         raise ValueError("La limite de temps et le nombre de threads doivent être strictement positifs.")
     return config.model_copy(update={"planning_policy": config.planning_policy.model_copy(update=overrides)})
+
+
+def demand_config_hash(config: HospitalConfig) -> str:
+    """Empreinte des seuls paramètres qui déterminent la demande et l'instance.
+
+    Les réglages de décision (solveurs, politique, poids de l'objectif) et le nom de
+    l'hôpital en sont exclus : les modifier ne périme ni les prévisions ni l'instance.
+    """
+    demand_parameters = config.model_dump(
+        mode="json", exclude={"hospital_name", "planning_policy", "objective_weights"}
+    )
+    serialized = json.dumps(demand_parameters, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()

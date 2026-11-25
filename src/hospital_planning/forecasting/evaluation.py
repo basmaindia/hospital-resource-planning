@@ -1,7 +1,6 @@
 """Évaluation chronologique et production d'artefacts de prévision."""
 
 import argparse
-import hashlib
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -10,7 +9,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from hospital_planning.config.loader import load_hospital_config
+from hospital_planning.config.loader import demand_config_hash, load_hospital_config
 from hospital_planning.domain.contracts import HospitalConfig
 from hospital_planning.forecasting.baselines import (
     moving_average_forecast,
@@ -118,7 +117,7 @@ def run_forecasting_pipeline(
         "final_test_origins": len(final_origins),
         "models": list(MODEL_NAMES),
         "services": service_count,
-        "demand_config_hash": _config_hash(hospital_config),
+        "demand_config_hash": demand_config_hash(hospital_config),
     }
     return ForecastPipelineResult(
         evaluation_predictions=evaluation_predictions,
@@ -277,11 +276,6 @@ def _validate_demand(demand: pd.DataFrame) -> None:
     admissions = pd.to_numeric(demand["admissions"], errors="coerce")
     if admissions.isna().any() or (admissions < 0).any():
         raise ValueError("Les admissions doivent être des nombres finis positifs ou nuls.")
-
-
-def _config_hash(config: HospitalConfig) -> str:
-    serialized = json.dumps(config.model_dump(mode="json"), sort_keys=True, ensure_ascii=False)
-    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
 def main() -> None:

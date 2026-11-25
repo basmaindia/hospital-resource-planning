@@ -74,7 +74,7 @@ $env:PYTHONPATH = "src"
 .\.venv\Scripts\python.exe -m hospital_planning.operational.requirements
 ```
 
-Cette commande produit l'instance canonique dans `results/operational_instances/S0/`, sans prendre de décision d'allocation ou de planning. Voir [docs/operational_requirements.md](docs/operational_requirements.md).
+Cette commande produit l'instance canonique dans `results/operational_instances/S0/`, sans prendre de décision d'allocation ou de planning. Elle fonctionne directement avec les prévisions fournies. Changer les solveurs ou les poids de l'objectif ne les périme pas ; après une modification des services, des données synthétiques, des postes, de la graine ou de l'horizon, relancer d'abord le générateur et les prévisions (environ 35 s), sinon la commande s'arrête avec un message explicite. Voir [docs/operational_requirements.md](docs/operational_requirements.md).
 
 ## Exécuter la baseline gloutonne
 

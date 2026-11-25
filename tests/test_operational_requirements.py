@@ -1,13 +1,16 @@
 """Tests de traduction des prévisions en besoins opérationnels."""
 
+import json
 from datetime import date
+from pathlib import Path
 
 import pandas as pd
 
+from hospital_planning.config.loader import demand_config_hash, with_solver_settings
 from hospital_planning.domain.contracts import HospitalConfig
 from hospital_planning.operational.requirements import (
     _build_staff_requirements,
-    _config_hash,
+    _portable_path,
     _simulate_future_occupancy,
     build_operational_instance,
     save_operational_instance,
@@ -88,7 +91,7 @@ def test_operational_instance_is_canonical_and_exportable(
     metadata = {
         "forecast_run_id": "forecast-test",
         "horizon_days": 7,
-        "demand_config_hash": _config_hash(hospital_config),
+        "demand_config_hash": demand_config_hash(hospital_config),
     }
 
     instance = build_operational_instance(
@@ -105,3 +108,42 @@ def test_operational_instance_is_canonical_and_exportable(
     assert len(instance.staff_requirements) == 28 * 3 * 3
     assert instance.reference.forecast.origin_date == date(2025, 1, 10)
     assert all(path.exists() for path in paths.values())
+
+
+def test_demand_hash_ignores_decision_settings_but_not_demand(hospital_config: HospitalConfig) -> None:
+    reference = demand_config_hash(hospital_config)
+    weights = hospital_config.objective_weights.model_copy(update={"unmet_patient_day": 9999})
+
+    assert demand_config_hash(with_solver_settings(hospital_config, 5, 2)) == reference
+    assert demand_config_hash(hospital_config.model_copy(update={"objective_weights": weights})) == reference
+    assert demand_config_hash(hospital_config.model_copy(update={"random_seed": 43})) != reference
+
+
+def test_readme_command_rebuilds_the_persisted_instance(repository_root: Path, hospital_config: HospitalConfig) -> None:
+    """Les prévisions fournies doivent rester utilisables avec la configuration fournie."""
+    forecasts = repository_root / "results" / "forecasts"
+    persisted = repository_root / "results" / "operational_instances" / "S0"
+
+    instance = build_operational_instance(
+        pd.read_csv(repository_root / "data" / "synthetic" / "historical_demand.csv", parse_dates=["date"]),
+        pd.read_csv(forecasts / "forecast_results.csv"),
+        json.loads((forecasts / "metadata.json").read_text(encoding="utf-8")),
+        hospital_config,
+        forecast_artifact_path="results/forecasts/forecast_results.csv",
+    )
+
+    for name in ("demand_requirements", "bed_requirements", "staff_requirements"):
+        expected = pd.read_csv(persisted / f"{name}.csv", parse_dates=["date"])
+        pd.testing.assert_frame_equal(getattr(instance, name), expected, check_dtype=False)
+    metadata = json.loads((persisted / "operational_instance.json").read_text(encoding="utf-8"))
+    assert metadata["instance"]["forecast"]["artifact_path"] == "results/forecasts/forecast_results.csv"
+    assert metadata["instance"]["input_hash"] == instance.reference.input_hash
+
+
+def test_forecast_path_is_portable(monkeypatch, tmp_path) -> None:
+    project = tmp_path / "project"
+    (project / "results").mkdir(parents=True)
+    monkeypatch.chdir(project)
+    assert _portable_path(Path("results") / "f.csv") == "results/f.csv"
+    assert _portable_path(project / "results" / "f.csv") == "results/f.csv"
+    assert _portable_path(tmp_path / "f.csv") == "f.csv"

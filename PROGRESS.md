@@ -32,7 +32,7 @@ Dernière synthèse : novembre 2026. Ce fichier décrit l’état observable du 
 - La validation de prévision réserve le test final ; il n’intervient pas dans la sélection des modèles.
 - Les trois méthodes utilisent les mêmes conventions d’unités et les mêmes composantes d’objectif.
 - Les admissions refusées sont un KPI en patients ; la pénalité de demande est portée une seule fois par les journées-patients non soutenues.
-- Contrôles confirmés le 25 novembre 2026 : `pytest -q` (58 tests), `ruff check src tests`, `npm.cmd run typecheck` et `npm.cmd run lint`. `npm.cmd run build` et Playwright (avec Edge) ont réussi lors de l'audit, avant ces corrections.
+- Contrôles confirmés le 25 novembre 2026 : `pytest -q` (61 tests), `ruff check src tests`, `npm.cmd run typecheck` et `npm.cmd run lint`. `npm.cmd run build` et Playwright (avec Edge) ont réussi lors de l'audit, avant ces corrections.
 
 ## Jeu de démonstration pour GitHub
 
@@ -61,6 +61,9 @@ Un audit a montré que les premiers résultats de la version 2 étaient biaisés
 - **Chemins** : `method_result.json` ne contient plus de chemin absolu.
 - **Dashboard** : minimum réel des admissions ; admissions entières lues dans l'instance (plafond de yhat).
 - **Comparaison par graine** : une autre graine ne masque plus les méthodes de référence.
+
+- **Commande `operational.requirements`** : l'empreinte ne porte plus que sur les paramètres de demande. Prévisions régénérées : valeurs identiques, instance S0 et identifiants d'expérience inchangés.
+- **Modèle mathématique** : `docs/mathematical_model.md` décrit désormais les coefficients uniformes et les frontières réellement codés.
 
 ### Résultats (objectif canonique, plus bas = meilleur)
 
@@ -103,8 +106,7 @@ Un audit a montré que les premiers résultats de la version 2 étaient biaisés
 
 ## Limites connues
 
-- `python -m hospital_planning.operational.requirements` échoue : l'empreinte de configuration des prévisions fournies ne correspond plus à `configs/hospital.json` (déjà le cas avant ces corrections). Il faut relancer les prévisions pour reconstruire l'instance S0.
-- `mathematical_model.md` annonce des coefficients par service et une continuité aux frontières de l'horizon qui ne sont pas codés.
+- La frontière de l'horizon n'est pas contrôlée côté personnel (repos et nuits de la veille) ; voir `docs/mathematical_model.md`.
 - Aucun artefact ne doit être interprété comme une donnée ou recommandation clinique réelle.
 - Une méthode peut ne pas avoir produit d’artefact exploitable pour une expérience ; le dashboard affiche alors un état explicite, jamais un KPI inventé.
 - Les solveurs exacts et la grille exhaustive de sensibilité sont coûteux et ne sont jamais lancés automatiquement.

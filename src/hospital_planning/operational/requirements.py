@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from hospital_planning.config.loader import load_hospital_config
+from hospital_planning.config.loader import demand_config_hash, load_hospital_config
 from hospital_planning.domain.contracts import (
     ForecastReference,
     HospitalConfig,
@@ -157,8 +157,11 @@ def _validate_forecast_metadata(
         run_ids = set(selected_forecasts["forecast_run_id"])
         if run_ids != {metadata["forecast_run_id"]}:
             raise ValueError("Les prévisions retenues et leurs métadonnées proviennent de runs différents.")
-    if str(metadata["demand_config_hash"]) != _config_hash(config):
-        raise ValueError("L'empreinte de configuration des prévisions ne correspond pas à la configuration active.")
+    if str(metadata["demand_config_hash"]) != demand_config_hash(config):
+        raise ValueError(
+            "L'empreinte de configuration des prévisions ne correspond pas à la configuration active. "
+            "Relancer d'abord : python -m hospital_planning.forecasting.evaluation"
+        )
 
 
 def _prepare_history(historical_demand: pd.DataFrame, config: HospitalConfig) -> pd.DataFrame:
@@ -269,14 +272,16 @@ def _input_hash(
 ) -> str:
     digest = hashlib.sha256()
     for table in (demand_requirements, bed_requirements, staff_requirements):
-        digest.update(table.to_csv(index=False, date_format="%Y-%m-%d").encode("utf-8"))
-    digest.update(_config_hash(config).encode("utf-8"))
+        digest.update(table.to_csv(index=False, date_format="%Y-%m-%d", lineterminator="\n").encode("utf-8"))
+    digest.update(demand_config_hash(config).encode("utf-8"))
     return digest.hexdigest()
 
 
-def _config_hash(config: HospitalConfig) -> str:
-    serialized = json.dumps(config.model_dump(mode="json"), sort_keys=True, ensure_ascii=False)
-    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+def _portable_path(path: Path) -> str:
+    """Chemin relatif en « / » ; un fichier hors du projet est réduit à son nom."""
+    resolved = path.resolve()
+    root = Path.cwd().resolve()
+    return resolved.relative_to(root).as_posix() if resolved.is_relative_to(root) else resolved.name
 
 
 def main() -> None:
@@ -294,7 +299,7 @@ def main() -> None:
         pd.read_csv(arguments.forecasts),
         json.loads(arguments.forecast_metadata.read_text(encoding="utf-8")),
         config,
-        forecast_artifact_path=str(arguments.forecasts),
+        forecast_artifact_path=_portable_path(arguments.forecasts),
     )
     save_operational_instance(instance, arguments.output)
 

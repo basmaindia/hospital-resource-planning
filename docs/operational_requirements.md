@@ -21,4 +21,4 @@ $env:PYTHONPATH = "src"
 .\.venv\Scripts\python.exe -m hospital_planning.operational.requirements
 ```
 
-Le fichier JSON contient la référence de prévision, l'empreinte d'entrée et les unités. Les phases 5 et 6 devront consommer exactement ces artefacts sans les régénérer ni les modifier.
+Le fichier JSON contient la référence de prévision (chemin relatif), l'empreinte d'entrée et les unités. L'empreinte de configuration ne porte que sur les paramètres de demande et d'instance : les réglages des solveurs, la politique et les poids de l'objectif en sont exclus. Les phases 5 et 6 devront consommer exactement ces artefacts sans les régénérer ni les modifier.

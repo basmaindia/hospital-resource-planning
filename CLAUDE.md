@@ -26,7 +26,7 @@ Code : `src/hospital_planning/` ; tests : `tests/` ; config : `configs/hospital.
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install . pytest pytest-cov ruff httpx
 $env:PYTHONPATH = "src"
-.\.venv\Scripts\python.exe -m pytest -q                      # 58 tests
+.\.venv\Scripts\python.exe -m pytest -q                      # 61 tests
 .\.venv\Scripts\python.exe -m ruff check src tests
 # Régénérer la comparaison complète (≈ 11 min : 50 s et 8 threads par solveur exact ; --time-limit et --workers pour changer)
 .\.venv\Scripts\python.exe -m hospital_planning.experiments.runner --methods greedy milp cp_sat
@@ -43,6 +43,7 @@ Après une modification Python avec une installation non éditable : `pip instal
 - Les chemins enregistrés dans les artefacts sont **relatifs et en `/`** (portabilité Windows ↔ Linux/macOS).
   Ne jamais réintroduire `str(path)` absolu dans un JSON d'artefact (`method_result.json` : relatif à son dossier).
 - Budget des solveurs : `solver_time_limit_seconds` et `solver_num_workers` dans `configs/hospital.json`, ≤ 2 min par scénario.
+- `demand_config_hash` exclut solveurs, politique et poids : les modifier ne périme ni les prévisions ni l'instance S0.
 - `scenario-comparison` retient la graine de référence (`random_seed`) ; `?seed=` pour une autre.
 - Le hash d'instance (`_scenario_hash`) force `lineterminator="\n"` : sinon l'ID d'expérience change selon l'OS.
 - `save_experiment` **fusionne** les méthodes d'une même instance : relancer une méthode ne supprime pas les autres.
