@@ -32,7 +32,7 @@ Dernière synthèse : novembre 2026. Ce fichier décrit l’état observable du 
 - La validation de prévision réserve le test final ; il n’intervient pas dans la sélection des modèles.
 - Les trois méthodes utilisent les mêmes conventions d’unités et les mêmes composantes d’objectif.
 - Les admissions refusées sont un KPI en patients ; la pénalité de demande est portée une seule fois par les journées-patients non soutenues.
-- Contrôles confirmés le 25 novembre 2026 : `pytest -q` (61 tests), `ruff check src tests`, `npm.cmd run typecheck` et `npm.cmd run lint`. `npm.cmd run build` et Playwright (avec Edge) ont réussi lors de l'audit, avant ces corrections.
+- Contrôles confirmés le 25 novembre 2026 : `pytest -q` (78 tests), `ruff check src tests`, `npm.cmd run typecheck` et `npm.cmd run lint`. `npm.cmd run build` et Playwright (avec Edge) ont réussi lors de l'audit, avant ces corrections.
 
 ## Jeu de démonstration pour GitHub
 
@@ -51,6 +51,13 @@ Corrections rendant le prototype fonctionnel de bout en bout :
 - **Nouvelle vue « Comparaison scénarios »** (+ endpoint `/api/v1/dashboard/scenario-comparison`) : graphique groupé scénario × méthode sur 8 indicateurs, tableau avec écart vs S0, meilleure méthode par scénario.
 - Lancement « Les 3 méthodes » par défaut depuis la vue Expériences ; `.gitignore` générique pour les expériences ; avertissements ESLint corrigés ; 3 tests de non-régression (`tests/test_portability.py`). 39/39 tests, ruff, typecheck, lint et `next build` OK.
 
+## Mise à jour — naïve, profils et équité (25 novembre 2026)
+
+- **Stratégie naïve** : partage proportionnel sans priorité de service.
+- **Trois profils de pondération** (`configs/profiles.json`), avec sélecteur dans la vue Comparaison scénarios.
+- **Équité** : agents absents sur tout l'horizon exclus.
+- **MILP** : reprise avec une autre graine si CBC s'arrête sur une assertion interne.
+
 ## Mise à jour — correction des résultats (25 novembre 2026)
 
 Un audit a montré que les premiers résultats de la version 2 étaient biaisés : MILP et CP-SAT (1 thread, 30 s, départ sur Greedy) rendaient les affectations de Greedy. Ils sont remplacés par ceux ci-dessous.
@@ -65,41 +72,115 @@ Un audit a montré que les premiers résultats de la version 2 étaient biaisés
 - **Commande `operational.requirements`** : l'empreinte ne porte plus que sur les paramètres de demande. Prévisions régénérées : valeurs identiques, instance S0 et identifiants d'expérience inchangés.
 - **Modèle mathématique** : `docs/mathematical_model.md` décrit désormais les coefficients uniformes et les frontières réellement codés.
 
-### Résultats (objectif canonique, plus bas = meilleur)
+### Résultats par profil (plus bas = meilleur, au sein d'un profil)
 
-18 exécutions, 18 valides, aucune prouvée optimale. Meilleur objectif de chaque scénario en gras. Gap = (objectif − borne) / objectif.
+72 exécutions, 72 valides ; seul S3 « priorité accueil » est prouvé optimal. Meilleur objectif de chaque scénario en gras. Gap = (objectif − borne) / objectif.
 
-| Scénario | Méthode | Objectif | vs Greedy | Gap | Refusées | Non soutenue | Couverture demande | Déficit RH | Équité | Temps |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| S0 nominal | Greedy | 636 379 | – | – | 4 | 18 | 99,0 % | 1 200 | 9 | 0,4 s |
-| S0 nominal | MILP/CBC | 609 870 | -4,2 % | 2,7 % | 4 | 18 | 99,0 % | 1 147 | 0 | 52,9 s |
-| S0 nominal | CP-SAT | **605 190** | -4,9 % | 2,8 % | 14 | 36 | 98,1 % | 1 102 | 0 | 52,3 s |
-| S1 pic URG | Greedy | 695 559 | – | – | 29 | 68 | 96,5 % | 1 218 | 9 | 0,4 s |
-| S1 pic URG | MILP/CBC | 666 041 | -4,2 % | 2,3 % | 30 | 69 | 96,4 % | 1 157 | 1 | 53,2 s |
-| S1 pic URG | CP-SAT | **664 490** | -4,5 % | 2,8 % | 33 | 74 | 96,2 % | 1 144 | 0 | 52,0 s |
-| S2 hausse +25 % | Greedy | 924 327 | – | – | 73 | 200 | 91,0 % | 1 408 | 7 | 0,4 s |
-| S2 hausse +25 % | MILP/CBC | 903 320 | -2,3 % | 1,1 % | 73 | 200 | 91,0 % | 1 366 | 0 | 53,1 s |
-| S2 hausse +25 % | CP-SAT | **899 240** | -2,7 % | 1,2 % | 76 | 208 | 90,7 % | 1 342 | 0 | 52,1 s |
-| S3 absences 15 % | Greedy | 712 885 | – | – | 4 | 18 | 99,0 % | 1 353 | 15 | 0,4 s |
-| S3 absences 15 % | MILP/CBC | 696 865 | -2,2 % | 2,2 % | 5 | 20 | 98,9 % | 1 317 | 15 | 52,6 s |
-| S3 absences 15 % | CP-SAT | **690 635** | -3,1 % | 2,2 % | 19 | 43 | 97,7 % | 1 259 | 15 | 51,9 s |
-| S4 crise combinée | Greedy | 1 002 335 | – | – | 73 | 200 | 91,0 % | 1 564 | 15 | 0,4 s |
-| S4 crise combinée | MILP/CBC | **984 655** | -1,8 % | 0,2 % | 76 | 218 | 90,2 % | 1 493 | 15 | 52,8 s |
-| S4 crise combinée | CP-SAT | 987 235 | -1,5 % | 1,1 % | 76 | 210 | 90,6 % | 1 514 | 15 | 51,9 s |
-| S5 fermeture 10 % lits | Greedy | 674 469 | – | – | 26 | 109 | 94,1 % | 1 096 | 9 | 0,5 s |
-| S5 fermeture 10 % lits | MILP/CBC | 650 444 | -3,6 % | 3,0 % | 27 | 111 | 94,0 % | 1 044 | 4 | 53,1 s |
-| S5 fermeture 10 % lits | CP-SAT | **644 400** | -4,5 % | 3,3 % | 30 | 115 | 93,8 % | 1 024 | 0 | 52,1 s |
+#### Équilibré (`equilibre`)
+
+| Scénario | Méthode | Objectif | vs Greedy | Gap | Refusées | Couverture demande | Déficit RH | Équité |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| S0 nominal | Naïve | 718 885 | +13,0 % | – | 4 | 99,0 % | 1 365 | 15 |
+| S0 nominal | Greedy | 636 379 | – | – | 4 | 99,0 % | 1 200 | 9 |
+| S0 nominal | MILP/CBC | 609 870 | −4,2 % | 2,7 % | 4 | 99,0 % | 1 147 | 0 |
+| S0 nominal | CP-SAT | **604 800** | −5,0 % | 2,8 % | 9 | 98,7 % | 1 123 | 0 |
+| S1 pic URG | Naïve | 787 965 | +13,3 % | – | 31 | 95,9 % | 1 383 | 15 |
+| S1 pic URG | Greedy | 695 559 | – | – | 29 | 96,5 % | 1 218 | 9 |
+| S1 pic URG | MILP/CBC | 666 041 | −4,2 % | 2,3 % | 30 | 96,4 % | 1 157 | 1 |
+| S1 pic URG | CP-SAT | **661 490** | −4,9 % | 2,3 % | 33 | 96,2 % | 1 138 | 0 |
+| S2 hausse +25 % | Naïve | 1 010 265 | +9,3 % | – | 74 | 90,7 % | 1 566 | 15 |
+| S2 hausse +25 % | Greedy | 924 327 | – | – | 73 | 91,0 % | 1 408 | 7 |
+| S2 hausse +25 % | MILP/CBC | 903 320 | −2,3 % | 1,1 % | 73 | 91,0 % | 1 366 | 0 |
+| S2 hausse +25 % | CP-SAT | **900 740** | −2,6 % | 1,5 % | 76 | 90,7 % | 1 345 | 0 |
+| S3 absences 15 % | Naïve | 783 385 | +9,9 % | – | 4 | 99,0 % | 1 494 | 15 |
+| S3 absences 15 % | Greedy | 712 876 | – | – | 4 | 99,0 % | 1 353 | 6 |
+| S3 absences 15 % | MILP/CBC | 696 200 | −2,3 % | 2,4 % | 9 | 98,1 % | 1 286 | 0 |
+| S3 absences 15 % | CP-SAT | **691 790** | −3,0 % | 2,2 % | 9 | 98,6 % | 1 295 | 0 |
+| S4 crise combinée | Naïve | 1 083 265 | +8,1 % | – | 74 | 90,7 % | 1 712 | 15 |
+| S4 crise combinée | Greedy | 1 002 325 | – | – | 73 | 91,0 % | 1 564 | 5 |
+| S4 crise combinée | MILP/CBC | **988 260** | −1,4 % | 0,7 % | 73 | 90,8 % | 1 524 | 0 |
+| S4 crise combinée | CP-SAT | 988 270 | −1,4 % | 1,2 % | 76 | 90,8 % | 1 526 | 0 |
+| S5 fermeture 10 % lits | Naïve | 757 455 | +12,3 % | – | 27 | 94,0 % | 1 258 | 15 |
+| S5 fermeture 10 % lits | Greedy | 674 469 | – | – | 26 | 94,1 % | 1 096 | 9 |
+| S5 fermeture 10 % lits | MILP/CBC | 650 444 | −3,6 % | 3,0 % | 27 | 94,0 % | 1 044 | 4 |
+| S5 fermeture 10 % lits | CP-SAT | **641 250** | −4,9 % | 2,7 % | 35 | 93,0 % | 988 | 0 |
+
+#### Priorité accueil (`priorite_accueil`)
+
+| Scénario | Méthode | Objectif | vs Greedy | Gap | Refusées | Couverture demande | Déficit RH | Équité |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| S0 nominal | Naïve | 964 385 | +13,9 % | – | 4 | 99,0 % | 1 365 | 15 |
+| S0 nominal | Greedy | 846 879 | – | – | 4 | 99,0 % | 1 200 | 9 |
+| S0 nominal | MILP/CBC | **820 370** | −3,1 % | 0,0 % | 4 | 99,0 % | 1 147 | 0 |
+| S0 nominal | CP-SAT | **820 370** | −3,1 % | 0,5 % | 4 | 99,0 % | 1 147 | 0 |
+| S1 pic URG | Naïve | 1 847 465 | +9,3 % | – | 31 | 95,9 % | 1 383 | 15 |
+| S1 pic URG | Greedy | 1 690 059 | – | – | 29 | 96,5 % | 1 218 | 9 |
+| S1 pic URG | MILP/CBC | **1 657 550** | −1,9 % | 0,0 % | 29 | 96,5 % | 1 159 | 0 |
+| S1 pic URG | CP-SAT | **1 657 550** | −1,9 % | 0,2 % | 29 | 96,5 % | 1 159 | 0 |
+| S2 hausse +25 % | Naïve | 2 714 265 | +5,4 % | – | 74 | 90,7 % | 1 566 | 15 |
+| S2 hausse +25 % | Greedy | 2 576 327 | – | – | 73 | 91,0 % | 1 408 | 7 |
+| S2 hausse +25 % | MILP/CBC | **2 555 320** | −0,8 % | 0,0 % | 73 | 91,0 % | 1 366 | 0 |
+| S2 hausse +25 % | CP-SAT | **2 555 320** | −0,8 % | 0,1 % | 73 | 91,0 % | 1 366 | 0 |
+| S3 absences 15 % | Naïve | 1 040 885 | +10,0 % | – | 4 | 99,0 % | 1 494 | 15 |
+| S3 absences 15 % | Greedy | 945 876 | – | – | 4 | 99,0 % | 1 353 | 6 |
+| S3 absences 15 % | MILP/CBC | **930 370** | −1,6 % | 0,0 % | 4 | 99,0 % | 1 322 | 0 |
+| S3 absences 15 % | CP-SAT | **930 370** | −1,6 % | 0,0 % | 4 | 99,0 % | 1 322 | 0 |
+| S4 crise combinée | Naïve | 2 800 765 | +4,6 % | – | 74 | 90,7 % | 1 712 | 15 |
+| S4 crise combinée | Greedy | 2 676 825 | – | – | 73 | 91,0 % | 1 564 | 5 |
+| S4 crise combinée | MILP/CBC | **2 665 320** | −0,4 % | 0,0 % | 73 | 91,0 % | 1 541 | 0 |
+| S4 crise combinée | CP-SAT | **2 665 320** | −0,4 % | 0,1 % | 73 | 91,0 % | 1 541 | 0 |
+| S5 fermeture 10 % lits | Naïve | 1 402 455 | +11,3 % | – | 27 | 94,0 % | 1 258 | 15 |
+| S5 fermeture 10 % lits | Greedy | 1 260 469 | – | – | 26 | 94,1 % | 1 096 | 9 |
+| S5 fermeture 10 % lits | MILP/CBC | **1 233 460** | −2,1 % | 0,1 % | 26 | 94,1 % | 1 042 | 0 |
+| S5 fermeture 10 % lits | CP-SAT | **1 233 460** | −2,1 % | 0,4 % | 26 | 94,1 % | 1 042 | 0 |
+
+#### Priorité personnel (`priorite_personnel`)
+
+| Scénario | Méthode | Objectif | vs Greedy | Gap | Refusées | Couverture demande | Déficit RH | Équité |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| S0 nominal | Naïve | 1 061 620 | +13,3 % | – | 4 | 99,0 % | 1 365 | 15 |
+| S0 nominal | Greedy | 937 270 | – | – | 4 | 99,0 % | 1 200 | 9 |
+| S0 nominal | MILP/CBC | 999 970 | +6,7 % | 16,8 % | 169 | 76,1 % | 723 | 6 |
+| S0 nominal | CP-SAT | **865 660** | −7,6 % | 4,4 % | 27 | 96,5 % | 1 045 | 0 |
+| S1 pic URG | Naïve | 1 135 200 | +13,4 % | – | 31 | 95,9 % | 1 383 | 15 |
+| S1 pic URG | Greedy | 1 000 950 | – | – | 29 | 96,5 % | 1 218 | 9 |
+| S1 pic URG | MILP/CBC | 963 100 | −3,8 % | 6,8 % | 34 | 95,9 % | 1 155 | 4 |
+| S1 pic URG | CP-SAT | **928 710** | −7,2 % | 3,9 % | 61 | 93,4 % | 1 045 | 0 |
+| S2 hausse +25 % | Naïve | 1 403 250 | +9,9 % | – | 74 | 90,7 % | 1 566 | 15 |
+| S2 hausse +25 % | Greedy | 1 277 020 | – | – | 73 | 91,0 % | 1 408 | 7 |
+| S2 hausse +25 % | MILP/CBC | 1 237 200 | −3,1 % | 4,3 % | 81 | 90,3 % | 1 333 | 3 |
+| S2 hausse +25 % | CP-SAT | **1 223 760** | −4,2 % | 3,5 % | 103 | 88,5 % | 1 264 | 0 |
+| S3 absences 15 % | Naïve | 1 158 370 | +10,1 % | – | 4 | 99,0 % | 1 494 | 15 |
+| S3 absences 15 % | Greedy | 1 051 720 | – | – | 4 | 99,0 % | 1 353 | 6 |
+| S3 absences 15 % | MILP/CBC | 1 187 540 | +12,9 % | 19,2 % | 221 | 75,4 % | 955 | 3 |
+| S3 absences 15 % | CP-SAT | **997 810** | −5,1 % | 4,3 % | 32 | 96,0 % | 1 208 | 0 |
+| S4 crise combinée | Naïve | 1 512 750 | +8,5 % | – | 74 | 90,7 % | 1 712 | 15 |
+| S4 crise combinée | Greedy | 1 393 820 | – | – | 73 | 91,0 % | 1 564 | 5 |
+| S4 crise combinée | MILP/CBC | 1 361 520 | −2,3 % | 3,3 % | 126 | 81,9 % | 1 251 | 0 |
+| S4 crise combinée | CP-SAT | **1 354 380** | −2,8 % | 3,2 % | 113 | 87,9 % | 1 421 | 0 |
+| S5 fermeture 10 % lits | Naïve | 1 073 440 | +13,1 % | – | 27 | 94,0 % | 1 258 | 15 |
+| S5 fermeture 10 % lits | Greedy | 949 360 | – | – | 26 | 94,1 % | 1 096 | 9 |
+| S5 fermeture 10 % lits | MILP/CBC | 887 690 | −6,5 % | 5,5 % | 45 | 92,1 % | 966 | 1 |
+| S5 fermeture 10 % lits | CP-SAT | **874 750** | −7,9 % | 4,5 % | 75 | 88,9 % | 871 | 0 |
 
 ### Lecture
 
-- Les solveurs exacts améliorent Greedy partout, de 1,5 à 4,9 %. CP-SAT est le meilleur sur S0, S1, S2, S3 et S5, MILP/CBC sur S4. Greedy reste utile : ≈ 0,4 s, au plus à 2,0–7,2 % de l'optimum.
-- Le déficit RH représente 75 à 95 % de l'objectif, la demande non soutenue 2,5 à 23 %.
-- Le gain vient surtout du personnel (S0 : 1 200 postes manquants avec Greedy, 1 147 avec MILP, 1 102 avec CP-SAT). Il se paie parfois en accueil : en S0, CP-SAT refuse 14 patients au lieu de 4 ; en S3, 19 au lieu de 4. Aucune méthode ne domine sur tous les KPI ; en S0 et S2, MILP fait mieux que Greedy à refus égaux.
-- Couverture des postes cibles en S0 : 48 % (Greedy), 51 % (MILP), 52 % (CP-SAT). L'objectif ne pondère pas les services : en S0, MILP couvre URG à 30 % contre 48 % pour Greedy.
-- En S3 et S4, l'équité vaut 15 pour les trois méthodes parce que les absents comptent avec une charge nulle.
+- **CP-SAT est la méthode la plus régulière** : meilleure ou ex æquo sur 17 des 18 cas. En S4 équilibré, MILP le devance de 10 points sur 988 260, un écart négligeable.
+- **Équilibré** : le meilleur solveur améliore Greedy de 1,4 à 5,0 %. CP-SAT refuse quelques patients de plus (9 au lieu de 4 en S0).
+- **Priorité accueil** : MILP et CP-SAT trouvent le même objectif sur les six scénarios, à 0,1 % ou moins de la borne ; S3 est prouvé optimal par les deux. Les refus tombent au niveau de Greedy, qui accepte déjà tout ce que les lits permettent : ce sont les lits, pas les choix, qui imposent ces refus. Le gain vient du personnel (0,4 à 3,1 %).
+- **Priorité personnel** : CP-SAT réduit le déficit RH de 9 à 21 % par rapport à Greedy, au prix de refus nettement plus nombreux (27 au lieu de 4 en S0, 113 au lieu de 73 en S4).
+- **MILP n'est pas fiable avec priorité personnel** : en S0 et S3, il fait moins bien que Greedy (+6,7 % et +12,9 %), avec des gaps de 17 et 19 %. Sans solution initiale, 50 s ne lui suffisent pas.
+- **Naïve** : toujours la moins bonne (4,6 à 13,9 % au-dessus de Greedy, sauf face à MILP en S3 priorité personnel). Le partage proportionnel laisse des postes vacants et une équité de 15, car il concentre la charge sur les premiers agents de la liste. Naïve et Greedy ont le même plan pour tous les profils.
+- **Équité sans les absents** : en S3 et S4, Greedy passe de 15 à 6 et 5, et les solveurs atteignent 0 avec les profils équilibré et priorité accueil. La métrique redevient discriminante.
+- **Qualifications** : URG et CHI d'un côté, REA et MED de l'autre, forment deux viviers disjoints. Donner la priorité à URG ne peut donc prendre du personnel qu'à CHI. En S0, MILP couvrait URG à 30 % avec équilibré ; avec priorité accueil il remonte à 48 %.
+- Les objectifs de deux profils ne se comparent pas ; leurs KPI, oui.
+
+### Conditions de calcul
+
+Graine 42, 50 s et 8 threads par solveur exact, environ 106 s par scénario et par profil (32 min pour les 72 résultats). Naïve et Greedy prennent environ 1 s au plus. Le premier passage a été perturbé par la mise en veille du PC : les 9 expériences sur 18 qui chevauchaient une veille ont été relancées sans interruption, et le journal Windows vérifié. CBC a été relancé automatiquement avec la graine 43 sur S4 priorité personnel (assertion interne avec la graine 42). Empêcher la veille pendant un recalcul : les solveurs sont limités en temps réel.
 
 ### Pistes restantes pour le groupe
-1. Enrichir la comparaison de stratégies : ajouter une stratégie naïve (ex. allocation proportionnelle sans priorité de service) et/ou des profils de pondération (« minimiser les coûts » vs « maximiser l'accueil »).
+1. Simulateur de scénario personnalisé et couverture RH par service et par poste dans le dashboard.
 2. Volets normatif et réglementaire (loi 09-08, confidentialité, traçabilité) à documenter explicitement.
 3. Mesurer un score d'utilisabilité (SUS) du dashboard auprès de quelques utilisateurs.
 4. Compte rendu technique et répartition de la démo entre les 6 membres.

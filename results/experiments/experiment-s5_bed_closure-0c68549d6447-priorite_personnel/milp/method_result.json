@@ -1,0 +1,49 @@
+{
+  "experiment_id": "milp-instance-forecast-20251230-s0-s5_bed_closure",
+  "scenario_id": "S5_BED_CLOSURE",
+  "method_name": "milp",
+  "profile_id": "priorite_personnel",
+  "status": "FEASIBLE",
+  "runtime_seconds": 56.02696879999712,
+  "objective_value": 887690.0,
+  "objective_components": {
+    "opened_bed_cost": 17090.0,
+    "unmet_patient_day_cost": 146000.0,
+    "staff_target_shortage_cost": 724500.0,
+    "workload_imbalance_cost": 100.0,
+    "rejected_admission_cost": 0.0,
+    "total_cost": 887690.0
+  },
+  "best_bound": 839188.1,
+  "optimality_gap": 0.05463833094886731,
+  "solver_time_limit_seconds": 50,
+  "solver_num_workers": 8,
+  "solver_seed": 42,
+  "unmet_demand_patient_days": 146,
+  "rejected_admissions": 45,
+  "staff_shortage_total": 966,
+  "coverage_rate": 0.9212938005390836,
+  "beds_opened_total": 1709,
+  "fairness_metric": 1.0,
+  "seed": 42,
+  "config_hash": "dbab2540f1e153126bd09cc96f90b533dc972af3d654b4173e0a6307a3e825cd",
+  "validation": {
+    "valid": true,
+    "hard_constraint_violations": 0,
+    "capacity_violations": 0,
+    "admission_violations": 0,
+    "reference_violations": 0,
+    "availability_violations": 0,
+    "qualification_violations": 0,
+    "double_assignment_violations": 0,
+    "coverage_deficits": 966,
+    "workload_range": 1,
+    "messages": [
+      "Déficit cumulé de cible de personnel : 966 poste(s)."
+    ]
+  },
+  "assignments_artifact_path": "staff_assignments.csv",
+  "allocations_artifact_path": "bed_allocations.csv",
+  "native_status": "TimeLimit",
+  "error_message": null
+}

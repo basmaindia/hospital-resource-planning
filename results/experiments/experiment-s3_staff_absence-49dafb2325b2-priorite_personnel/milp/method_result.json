@@ -1,0 +1,49 @@
+{
+  "experiment_id": "milp-instance-forecast-20251230-s0-s3_staff_absence",
+  "scenario_id": "S3_STAFF_ABSENCE",
+  "method_name": "milp",
+  "profile_id": "priorite_personnel",
+  "status": "FEASIBLE",
+  "runtime_seconds": 52.533615600084886,
+  "objective_value": 1187540.0,
+  "objective_components": {
+    "opened_bed_cost": 13990.0,
+    "unmet_patient_day_cost": 457000.0,
+    "staff_target_shortage_cost": 716250.0,
+    "workload_imbalance_cost": 300.0,
+    "rejected_admission_cost": 0.0,
+    "total_cost": 1187540.0
+  },
+  "best_bound": 959991.66,
+  "optimality_gap": 0.19161320039746027,
+  "solver_time_limit_seconds": 50,
+  "solver_num_workers": 8,
+  "solver_seed": 42,
+  "unmet_demand_patient_days": 457,
+  "rejected_admissions": 221,
+  "staff_shortage_total": 955,
+  "coverage_rate": 0.7536388140161725,
+  "beds_opened_total": 1399,
+  "fairness_metric": 3.0,
+  "seed": 42,
+  "config_hash": "dbab2540f1e153126bd09cc96f90b533dc972af3d654b4173e0a6307a3e825cd",
+  "validation": {
+    "valid": true,
+    "hard_constraint_violations": 0,
+    "capacity_violations": 0,
+    "admission_violations": 0,
+    "reference_violations": 0,
+    "availability_violations": 0,
+    "qualification_violations": 0,
+    "double_assignment_violations": 0,
+    "coverage_deficits": 955,
+    "workload_range": 3,
+    "messages": [
+      "Déficit cumulé de cible de personnel : 955 poste(s)."
+    ]
+  },
+  "assignments_artifact_path": "staff_assignments.csv",
+  "allocations_artifact_path": "bed_allocations.csv",
+  "native_status": "TimeLimit",
+  "error_message": null
+}

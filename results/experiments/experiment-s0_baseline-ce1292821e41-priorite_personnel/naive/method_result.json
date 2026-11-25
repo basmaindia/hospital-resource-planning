@@ -1,0 +1,49 @@
+{
+  "experiment_id": "naive-instance-forecast-20251230-s0-s0_baseline",
+  "scenario_id": "S0_BASELINE",
+  "method_name": "naive",
+  "profile_id": "priorite_personnel",
+  "status": "FEASIBLE",
+  "runtime_seconds": 0.473653,
+  "objective_value": 1061620.0,
+  "objective_components": {
+    "opened_bed_cost": 18370.0,
+    "unmet_patient_day_cost": 18000.0,
+    "staff_target_shortage_cost": 1023750.0,
+    "workload_imbalance_cost": 1500.0,
+    "rejected_admission_cost": 0.0,
+    "total_cost": 1061620.0
+  },
+  "best_bound": null,
+  "optimality_gap": null,
+  "solver_time_limit_seconds": null,
+  "solver_num_workers": null,
+  "solver_seed": null,
+  "unmet_demand_patient_days": 18,
+  "rejected_admissions": 4,
+  "staff_shortage_total": 1365,
+  "coverage_rate": 0.9902964959568733,
+  "beds_opened_total": 1837,
+  "fairness_metric": 15.0,
+  "seed": 42,
+  "config_hash": "dbab2540f1e153126bd09cc96f90b533dc972af3d654b4173e0a6307a3e825cd",
+  "validation": {
+    "valid": true,
+    "hard_constraint_violations": 0,
+    "capacity_violations": 0,
+    "admission_violations": 0,
+    "reference_violations": 0,
+    "availability_violations": 0,
+    "qualification_violations": 0,
+    "double_assignment_violations": 0,
+    "coverage_deficits": 1365,
+    "workload_range": 15,
+    "messages": [
+      "Déficit cumulé de cible de personnel : 1365 poste(s)."
+    ]
+  },
+  "assignments_artifact_path": "staff_assignments.csv",
+  "allocations_artifact_path": "bed_allocations.csv",
+  "native_status": "NAIVE_COMPLETE",
+  "error_message": null
+}

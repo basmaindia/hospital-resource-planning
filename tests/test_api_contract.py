@@ -15,6 +15,7 @@ from hospital_planning.api.app import (
     get_dashboard_exploration,
     get_dashboard_forecasts,
     get_dashboard_operational,
+    get_dashboard_profiles,
     get_dashboard_scenarios,
     get_experiment,
     get_hospital_config,
@@ -133,9 +134,13 @@ def test_dashboard_read_contracts_expose_only_persisted_artifacts(monkeypatch, r
     assert len(milp_allocation.allocations) == 28
     assert all(point.occupancy_required is not None for point in milp_allocation.allocations)
     assert len(cp_sat_allocation.allocations) == 28
-    stored_methods = {row["method_name"] for row in comparison}
-    assert stored_methods >= {"greedy", "milp", "cp_sat"}
-    assert len(comparison) == 6 * len(stored_methods)
+    assert len(comparison) == 6 * 4
+    assert {row["method_name"] for row in comparison} == {"naive", "greedy", "milp", "cp_sat"}
+    for profile in get_dashboard_profiles():
+        rows = get_scenario_comparison(profile=profile.profile_id)
+        assert len(rows) == 6 * 4
+        assert {row["profile_id"] for row in rows} == {profile.profile_id}
+        assert all(row["validation_passed"] for row in rows)
     assert all(row["validation_passed"] for row in comparison)
 
 

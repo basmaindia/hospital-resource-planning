@@ -8,7 +8,7 @@ Les exigences de référence sont dans [specifications.md](specifications.md). L
 
 - Données synthétiques reproductibles pour URG, MED, REA et CHI.
 - Prévisions J+1 à J+7 avec cinq modèles et validation chronologique.
-- Instance commune de besoins opérationnels, puis Greedy, MILP/CBC et CP-SAT avec validateur indépendant.
+- Instance commune de besoins opérationnels, puis stratégie naïve, Greedy, MILP/CBC et CP-SAT avec validateur indépendant et trois profils de pondération.
 - Scénarios S0 à S5, expériences persistées, API FastAPI et dashboard à neuf vues.
 
 Les allocations et comparaisons ne sont affichées que lorsqu’elles ont été effectivement générées et persistées.
@@ -101,7 +101,7 @@ $env:PYTHONPATH = "src"
 .\.venv\Scripts\python.exe -m hospital_planning.experiments.runner
 ```
 
-La commande crée les expériences Greedy S0–S5 dans `results/experiments/`. Ajouter `--methods greedy milp cp_sat` pour comparer les trois méthodes sur les mêmes instances (≈ 107 s par scénario, ≈ 11 min au total). Le budget par solveur exact, 50 s et 8 threads par défaut, se règle dans `configs/hospital.json` ou avec `--time-limit` et `--workers`. Le manifeste de sensibilité à 80 scénarios s'obtient avec `--sensitivity-manifest`. Voir [docs/experiments.md](docs/experiments.md).
+La commande crée les expériences Greedy S0–S5 dans `results/experiments/`. Ajouter `--methods naive greedy milp cp_sat --profiles equilibre priorite_accueil priorite_personnel` pour comparer les quatre méthodes et les trois profils (≈ 106 s par scénario et par profil, ≈ 32 min au total, PC branché et sans mise en veille). Le budget par solveur exact, 50 s et 8 threads par défaut, se règle dans `configs/hospital.json` ou avec `--time-limit` et `--workers`. Le manifeste de sensibilité à 80 scénarios s'obtient avec `--sensitivity-manifest`. Voir [docs/experiments.md](docs/experiments.md).
 
 ## Démarrer l'API locale
 
@@ -131,22 +131,46 @@ Le dashboard est disponible sur `http://localhost:3011`. Après clonage et insta
 
 ## Résultats de référence
 
-Objectif canonique, plus bas = meilleur (graine 42, 50 s et 8 threads par solveur exact). Détail et lecture dans [PROGRESS.md](PROGRESS.md).
+Objectif du profil, plus bas = meilleur (graine 42, 50 s et 8 threads par solveur exact). Les objectifs ne se comparent qu'au sein d'un profil. Refus et déficit RH : meilleure méthode (Greedy entre parenthèses). Détail et lecture dans [PROGRESS.md](PROGRESS.md).
 
-| Scénario | Greedy | MILP/CBC | CP-SAT | Meilleur vs Greedy |
-|---|---:|---:|---:|---:|
-| S0 nominal | 636 379 | 609 870 | 605 190 | -4,9 % (CP-SAT) |
-| S1 pic URG | 695 559 | 666 041 | 664 490 | -4,5 % (CP-SAT) |
-| S2 hausse +25 % | 924 327 | 903 320 | 899 240 | -2,7 % (CP-SAT) |
-| S3 absences 15 % | 712 885 | 696 865 | 690 635 | -3,1 % (CP-SAT) |
-| S4 crise combinée | 1 002 335 | 984 655 | 987 235 | -1,8 % (MILP/CBC) |
-| S5 fermeture 10 % lits | 674 469 | 650 444 | 644 400 | -4,5 % (CP-SAT) |
+**Équilibré**
+
+| Scénario | Naïve | Greedy | MILP/CBC | CP-SAT | Meilleure | vs Greedy | Refus | Déficit RH |
+|---|---:|---:|---:|---:|---|---:|---:|---:|
+| S0 nominal | 718 885 | 636 379 | 609 870 | **604 800** | CP-SAT | −5,0 % | 9 (4) | 1 123 (1 200) |
+| S1 pic URG | 787 965 | 695 559 | 666 041 | **661 490** | CP-SAT | −4,9 % | 33 (29) | 1 138 (1 218) |
+| S2 hausse +25 % | 1 010 265 | 924 327 | 903 320 | **900 740** | CP-SAT | −2,6 % | 76 (73) | 1 345 (1 408) |
+| S3 absences 15 % | 783 385 | 712 876 | 696 200 | **691 790** | CP-SAT | −3,0 % | 9 (4) | 1 295 (1 353) |
+| S4 crise combinée | 1 083 265 | 1 002 325 | **988 260** | 988 270 | MILP/CBC | −1,4 % | 73 (73) | 1 524 (1 564) |
+| S5 fermeture 10 % lits | 757 455 | 674 469 | 650 444 | **641 250** | CP-SAT | −4,9 % | 35 (26) | 988 (1 096) |
+
+**Priorité accueil**
+
+| Scénario | Naïve | Greedy | MILP/CBC | CP-SAT | Meilleure | vs Greedy | Refus | Déficit RH |
+|---|---:|---:|---:|---:|---|---:|---:|---:|
+| S0 nominal | 964 385 | 846 879 | **820 370** | **820 370** | MILP/CBC = CP-SAT | −3,1 % | 4 (4) | 1 147 (1 200) |
+| S1 pic URG | 1 847 465 | 1 690 059 | **1 657 550** | **1 657 550** | MILP/CBC = CP-SAT | −1,9 % | 29 (29) | 1 159 (1 218) |
+| S2 hausse +25 % | 2 714 265 | 2 576 327 | **2 555 320** | **2 555 320** | MILP/CBC = CP-SAT | −0,8 % | 73 (73) | 1 366 (1 408) |
+| S3 absences 15 % | 1 040 885 | 945 876 | **930 370** | **930 370** | MILP/CBC = CP-SAT | −1,6 % | 4 (4) | 1 322 (1 353) |
+| S4 crise combinée | 2 800 765 | 2 676 825 | **2 665 320** | **2 665 320** | MILP/CBC = CP-SAT | −0,4 % | 73 (73) | 1 541 (1 564) |
+| S5 fermeture 10 % lits | 1 402 455 | 1 260 469 | **1 233 460** | **1 233 460** | MILP/CBC = CP-SAT | −2,1 % | 26 (26) | 1 042 (1 096) |
+
+**Priorité personnel**
+
+| Scénario | Naïve | Greedy | MILP/CBC | CP-SAT | Meilleure | vs Greedy | Refus | Déficit RH |
+|---|---:|---:|---:|---:|---|---:|---:|---:|
+| S0 nominal | 1 061 620 | 937 270 | 999 970 | **865 660** | CP-SAT | −7,6 % | 27 (4) | 1 045 (1 200) |
+| S1 pic URG | 1 135 200 | 1 000 950 | 963 100 | **928 710** | CP-SAT | −7,2 % | 61 (29) | 1 045 (1 218) |
+| S2 hausse +25 % | 1 403 250 | 1 277 020 | 1 237 200 | **1 223 760** | CP-SAT | −4,2 % | 103 (73) | 1 264 (1 408) |
+| S3 absences 15 % | 1 158 370 | 1 051 720 | 1 187 540 | **997 810** | CP-SAT | −5,1 % | 32 (4) | 1 208 (1 353) |
+| S4 crise combinée | 1 512 750 | 1 393 820 | 1 361 520 | **1 354 380** | CP-SAT | −2,8 % | 113 (73) | 1 421 (1 564) |
+| S5 fermeture 10 % lits | 1 073 440 | 949 360 | 887 690 | **874 750** | CP-SAT | −7,9 % | 75 (26) | 871 (1 096) |
 
 ## Limites
 
 - Les données, ratios, scénarios et résultats sont synthétiques.
-- Les expériences fournies couvrent S0–S5 avec les trois méthodes sur la même instance (18 résultats valides, aucun prouvé optimal). MILP et CP-SAT, parallèles et limités à 50 s, peuvent varier légèrement d'une exécution à l'autre.
-- Le déficit de personnel représente 75 à 95 % de l'objectif : un meilleur objectif peut s'accompagner de davantage d'admissions refusées.
+- Les expériences fournies couvrent S0–S5 avec quatre méthodes et trois profils (72 résultats valides, un seul cas prouvé optimal). MILP et CP-SAT, parallèles et limités à 50 s, peuvent varier légèrement d'une exécution à l'autre.
+- Le déficit de personnel représente 75 à 95 % de l'objectif équilibré : un meilleur objectif peut s'accompagner de davantage d'admissions refusées.
 - Les solveurs exacts et la sensibilité exhaustive peuvent être coûteux et ne sont jamais lancés automatiquement.
 - Le test Playwright nécessite un navigateur installé et ne contrôle pas les données affichées.
 

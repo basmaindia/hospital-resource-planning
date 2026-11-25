@@ -1,0 +1,49 @@
+{
+  "experiment_id": "cp_sat-instance-forecast-20251230-s0-s2_general_surge",
+  "scenario_id": "S2_GENERAL_SURGE",
+  "method_name": "cp_sat",
+  "profile_id": "priorite_personnel",
+  "status": "FEASIBLE",
+  "runtime_seconds": 51.69021370005794,
+  "objective_value": 1223760.0,
+  "objective_components": {
+    "opened_bed_cost": 19760.0,
+    "unmet_patient_day_cost": 256000.0,
+    "staff_target_shortage_cost": 948000.0,
+    "workload_imbalance_cost": 0.0,
+    "rejected_admission_cost": 0.0,
+    "total_cost": 1223760.0
+  },
+  "best_bound": 1180620.0,
+  "optimality_gap": 0.035252010198078054,
+  "solver_time_limit_seconds": 50,
+  "solver_num_workers": 8,
+  "solver_seed": 42,
+  "unmet_demand_patient_days": 256,
+  "rejected_admissions": 103,
+  "staff_shortage_total": 1264,
+  "coverage_rate": 0.8853046594982079,
+  "beds_opened_total": 1976,
+  "fairness_metric": 0.0,
+  "seed": 42,
+  "config_hash": "dbab2540f1e153126bd09cc96f90b533dc972af3d654b4173e0a6307a3e825cd",
+  "validation": {
+    "valid": true,
+    "hard_constraint_violations": 0,
+    "capacity_violations": 0,
+    "admission_violations": 0,
+    "reference_violations": 0,
+    "availability_violations": 0,
+    "qualification_violations": 0,
+    "double_assignment_violations": 0,
+    "coverage_deficits": 1264,
+    "workload_range": 0,
+    "messages": [
+      "Déficit cumulé de cible de personnel : 1264 poste(s)."
+    ]
+  },
+  "assignments_artifact_path": "staff_assignments.csv",
+  "allocations_artifact_path": "bed_allocations.csv",
+  "native_status": "FEASIBLE",
+  "error_message": null
+}

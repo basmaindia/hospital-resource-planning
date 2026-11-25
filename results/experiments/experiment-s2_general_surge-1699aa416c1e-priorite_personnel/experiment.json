@@ -1,0 +1,61 @@
+{
+  "experiment_id": "experiment-s2_general_surge-1699aa416c1e-priorite_personnel",
+  "created_at": "2026-11-25T16:02:58.067005+00:00",
+  "scenario": {
+    "scenario_id": "S2_GENERAL_SURGE",
+    "description": "Hausse générale de 25 % de la demande.",
+    "demand_multiplier": 1.25,
+    "absence_rate": 0.0,
+    "capacity_reduction": 0.0,
+    "service_multipliers": {},
+    "peak_days": null
+  },
+  "seed": 42,
+  "profile_id": "priorite_personnel",
+  "objective_weights": {
+    "opened_bed": 10,
+    "unmet_patient_day": 1000,
+    "staff_target_shortage": 750,
+    "workload_imbalance": 100,
+    "rejected_admission": 0,
+    "demand_multipliers": {},
+    "staff_multipliers": {}
+  },
+  "scenario_input_hash": "1699aa416c1ef47b4e16eed5c0ca2e24aeb5e01c9b46c121a41b08e6ccfa9008",
+  "methods": [
+    "naive",
+    "greedy",
+    "milp",
+    "cp_sat"
+  ],
+  "method_artifacts": {
+    "naive": {
+      "bed_allocations": "naive/bed_allocations.csv",
+      "staff_assignments": "naive/staff_assignments.csv",
+      "staff_coverage": "naive/staff_coverage.csv",
+      "planning_availability": "naive/planning_availability.csv",
+      "method_result": "naive/method_result.json"
+    },
+    "greedy": {
+      "bed_allocations": "greedy/bed_allocations.csv",
+      "staff_assignments": "greedy/staff_assignments.csv",
+      "staff_coverage": "greedy/staff_coverage.csv",
+      "planning_availability": "greedy/planning_availability.csv",
+      "method_result": "greedy/method_result.json"
+    },
+    "milp": {
+      "bed_allocations": "milp/bed_allocations.csv",
+      "staff_assignments": "milp/staff_assignments.csv",
+      "staff_coverage": "milp/staff_coverage.csv",
+      "planning_availability": "milp/planning_availability.csv",
+      "method_result": "milp/method_result.json"
+    },
+    "cp_sat": {
+      "bed_allocations": "cp_sat/bed_allocations.csv",
+      "staff_assignments": "cp_sat/staff_assignments.csv",
+      "staff_coverage": "cp_sat/staff_coverage.csv",
+      "planning_availability": "cp_sat/planning_availability.csv",
+      "method_result": "cp_sat/method_result.json"
+    }
+  }
+}

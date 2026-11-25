@@ -1,6 +1,6 @@
 {
   "experiment_id": "experiment-s3_staff_absence-49dafb2325b2",
-  "created_at": "2026-11-25T04:00:17.797225+00:00",
+  "created_at": "2026-11-25T15:57:31.572639+00:00",
   "scenario": {
     "scenario_id": "S3_STAFF_ABSENCE",
     "description": "Indisponibilité supplémentaire de 15 % des professionnels disponibles.",
@@ -11,13 +11,31 @@
     "peak_days": null
   },
   "seed": 42,
+  "profile_id": "equilibre",
+  "objective_weights": {
+    "opened_bed": 10,
+    "unmet_patient_day": 1000,
+    "staff_target_shortage": 500,
+    "workload_imbalance": 1,
+    "rejected_admission": 0,
+    "demand_multipliers": {},
+    "staff_multipliers": {}
+  },
   "scenario_input_hash": "49dafb2325b26f48aefcf42c78554158fbd3dcc4bdac2123d5df91ad8657ce9a",
   "methods": [
+    "naive",
     "greedy",
     "milp",
     "cp_sat"
   ],
   "method_artifacts": {
+    "naive": {
+      "bed_allocations": "naive/bed_allocations.csv",
+      "staff_assignments": "naive/staff_assignments.csv",
+      "staff_coverage": "naive/staff_coverage.csv",
+      "planning_availability": "naive/planning_availability.csv",
+      "method_result": "naive/method_result.json"
+    },
     "greedy": {
       "bed_allocations": "greedy/bed_allocations.csv",
       "staff_assignments": "greedy/staff_assignments.csv",
